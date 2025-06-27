@@ -115,12 +115,42 @@ class SctParLooper : public edm::one::EDAnalyzer<> {
     unsigned int run, lumi, evtn;
     bool passL1, passHLT;
     float PV_x, PV_y, PV_z;
-
-    //std::vector<char> l1fired;
-    //std::vector<char> hltfired;
-
-    //std::vector<std::string> l1Names;
-    //std::vector<std::string> hltNames;
+    //SV variables
+    std::vector<unsigned int> index, ndof;
+    std::vector<float> x, y, z;
+    std::vector<float> xe, ye, ze;
+    std::vector<float> chi2, prob, SV_chi2Ndof;
+    std::vector<float> lxy, l3d;
+    std::vector<float> mindx, mindy, mindz, mindxy, mind3d;
+    std::vector<float> maxdx, maxdy, maxdz, maxdxy, maxd3d;
+    //std::vector<bool> selected;
+    std::vector<bool> onModule, onModuleWithinUnc;
+    std::vector<float> closestDet_x, closestDet_y, closestDet_z;
+    std::vector<float> minDistanceFromDet, minDistanceFromDet_x, minDistanceFromDet_y, minDistanceFromDet_z;
+    //Muon variables
+    std::vector<std::vector<int>> vtxIdxs;
+    std::vector<unsigned int> saHits, saMatchedStats;
+    std::vector<unsigned int> muHits, muChambs, muCSCDT, muMatch, muMatchedStats, muExpMatchedStats, muMatchedRPC;
+    std::vector<unsigned int> pixHits, stripHits;
+    std::vector<unsigned int> pixLayers, trkLayers;
+    std::vector<int> bestAssocSVIdx, bestAssocSVOverlapIdx;
+    std::vector<int> ch;
+    std::vector<int> isGlobal, isTracker, isStandAlone;
+    std::vector<float> pt, eta, phi;
+    std::vector<float> mu_chi2Ndof;
+    std::vector<float> ecalIso, hcalIso, trackIso;
+    std::vector<float> ecalRelIso, hcalRelIso, trackRelIso;
+    std::vector<float> dxy, dxye, dz, dze;
+    std::vector<float> dxysig, dzsig;
+    std::vector<float> phiCorr, dxyCorr;
+    std::vector<float> PFIsoChg0p3, PFIsoChg0p4, PFIsoAll0p3, PFIsoAll0p4;
+    std::vector<float> PFRelIsoChg0p3, PFRelIsoChg0p4, PFRelIsoAll0p3, PFRelIsoAll0p4;
+    std::vector<float> mindrPF0p3, mindrPF0p4;
+    std::vector<float> mindr, maxdr;
+    std::vector<float> mindrJet, mindphiJet, mindetaJet;
+    std::vector<TLorentzVector> vec;
+    //std::vector<bool> selected;
+    std::vector<int> nhitsbeforesv, ncompatible, ncompatibletotal, nexpectedhits, nexpectedhitsmultiple, nexpectedhitsmultipletotal, nexpectedhitstotal;
   };
 
 //Constructor
@@ -151,7 +181,7 @@ SctParLooper::SctParLooper(const edm::ParameterSet& iConfig) :
 //Destructor
 SctParLooper::~SctParLooper() = default;
 
-
+/*
 struct Muon {
   std::vector<std::vector<int>> vtxIdxs;
   std::vector<unsigned int> saHits, saMatchedStats;
@@ -333,8 +363,9 @@ struct SV {
     apply_permutation_in_place(closestDet_y, comp);
     apply_permutation_in_place(closestDet_z, comp);
   }
+ 
 };
-
+*/
 
 void SctParLooper::analyze(const edm::Event& iEvent, const edm::EventSetup& iSetup) {
   run = iEvent.id().run();
@@ -415,12 +446,12 @@ void SctParLooper::analyze(const edm::Event& iEvent, const edm::EventSetup& iSet
   if (!passHLT) {
     return;
   }
-  SV SVs;
-  Muon Muons;
+  //SV SVs;
+  //Muon Muons;
   //int nMuonAssoc;
   bool relaxedSVSel = false;
   float sfSVsel = (relaxedSVSel) ? 5.0 : 1.0;
-  float maxXerr=0.05*sfSVsel, maxYerr=0.05*sfSVsel, maxZerr=0.10*sfSVsel, maxChi2=3.0*sfSVsel;
+  //float maxXerr=0.05*sfSVsel, maxYerr=0.05*sfSVsel, maxZerr=0.10*sfSVsel, maxChi2=3.0*sfSVsel;
   
   PV_x = 0;
   PV_y = 0;
@@ -433,7 +464,18 @@ void SctParLooper::analyze(const edm::Event& iEvent, const edm::EventSetup& iSet
   }
 
   //SV selection
-  SVs.clear();
+  index.clear(); ndof.clear();
+  x.clear(); y.clear(); z.clear();
+  xe.clear(); ye.clear(); ze.clear();
+  chi2.clear(); prob.clear(); SV_chi2Ndof.clear();
+  lxy.clear(); l3d.clear();
+  mindx.clear(); mindy.clear(); mindz.clear(); mindxy.clear(); mind3d.clear();
+  maxdx.clear(); maxdy.clear(); maxdz.clear(); maxdxy.clear(); maxd3d.clear();
+  //selected.clear();
+  onModule.clear(); onModuleWithinUnc.clear();
+  closestDet_x.clear(); closestDet_y.clear(); closestDet_z.clear();
+  minDistanceFromDet.clear(), minDistanceFromDet_x.clear(), minDistanceFromDet_y.clear(), minDistanceFromDet_z.clear();
+  //SVs.clear();
   const auto& svCollection = *displacedVertices;
   unsigned int nSVs = svCollection.size();
   std::cout << "nSVs = " << nSVs << std::endl;
@@ -443,37 +485,59 @@ void SctParLooper::analyze(const edm::Event& iEvent, const edm::EventSetup& iSet
   for (unsigned int iSV = 0; iSV < nSVs; ++iSV) {
     const auto& sv = svCollection[iSV];
     if (!sv.isValidVtx()) continue;	
-    float x=sv.x(), y=sv.y(), z=sv.z();
-    float xe=sv.xError(), ye=sv.yError(), ze=sv.zError();
-    float chi2=sv.chi2(), ndof=sv.ndof();
-    SVs.index.push_back(iSV);
-    SVs.ndof.push_back(ndof);
-    SVs.x.push_back(x);
-    SVs.y.push_back(y);
-    SVs.z.push_back(z);
-    SVs.xe.push_back(xe);
-    SVs.ye.push_back(ye);
-    SVs.ze.push_back(ze);
-    SVs.chi2.push_back(chi2);
-    SVs.prob.push_back(TMath::Prob(chi2, ndof));
-    SVs.chi2Ndof.push_back(chi2/ndof);
-    float dx = x - PV_x;
-    float dy = y - PV_y;
-    float dz = z - PV_z;
-    float lxy = std::sqrt(dx * dx + dy * dy);
-    float l3d = std::sqrt(lxy * lxy + dz * dz);
-    std::cout << "lxy = " << lxy << std::endl;
+    index.push_back(iSV);
+    ndof.push_back(sv.ndof());
+    x.push_back(sv.x());
+    y.push_back(sv.y());
+    z.push_back(sv.z());
+    xe.push_back(sv.xError());
+    ye.push_back(sv.yError());
+    ze.push_back(sv.zError());
+    chi2.push_back(sv.chi2());
+    prob.push_back(TMath::Prob(sv.chi2(), sv.ndof()));
+    SV_chi2Ndof.push_back(sv.chi2()/sv.ndof());
+    float dx = sv.x() - PV_x;
+    float dy = sv.y() - PV_y;
+    float dz = sv.z() - PV_z;
+    float lxy_int = std::sqrt(dx * dx + dy * dy);
+    float l3d_int = std::sqrt(lxy_int * lxy_int + dz * dz);
+    std::cout << "lxy = " << lxy_int << std::endl;
 
-    SVs.lxy.push_back(lxy);
-    SVs.l3d.push_back(l3d);
+    lxy.push_back(lxy_int);
+    l3d.push_back(l3d_int);
 
-    bool passSel = (xe < maxXerr && ye < maxYerr && ze < maxZerr && chi2 / ndof < maxChi2);
-    SVs.selected.push_back(passSel);
+    //bool passSel = (sv.xError() < maxXerr && sv.yError() < maxYerr && sv.zError() < maxZerr && sv.chi2() / sv.ndof() < maxChi2);
+    //SVs.selected.push_back(passSel);
   }
   //SVs.sort();
   
   //Muon selection  
-  Muons.clear();
+  vtxIdxs.clear();
+  saHits.clear(); saMatchedStats.clear();
+  muHits.clear(); muChambs.clear(); muCSCDT.clear(); muMatch.clear(); muMatchedStats.clear(); muExpMatchedStats.clear(); muMatchedRPC.clear();
+  pixHits.clear(); stripHits.clear();
+  pixLayers.clear(); trkLayers.clear();
+  bestAssocSVIdx.clear(); bestAssocSVOverlapIdx.clear();
+  ch.clear();
+  isGlobal.clear(); isTracker.clear(); isStandAlone.clear();
+  pt.clear(); eta.clear(); phi.clear();
+  mu_chi2Ndof.clear();
+  ecalIso.clear(); hcalIso.clear(); trackIso.clear();
+  ecalRelIso.clear(); hcalRelIso.clear(); trackRelIso.clear();
+  dxy.clear(); dxye.clear(); dz.clear(); dze.clear();
+  dxysig.clear(); dzsig.clear();
+  phiCorr.clear(); dxyCorr.clear();
+  PFIsoChg0p3.clear(); PFIsoAll0p3.clear();
+  PFRelIsoChg0p3.clear(); PFRelIsoAll0p3.clear();
+  PFIsoChg0p4.clear(); PFIsoAll0p4.clear();
+  PFRelIsoChg0p4.clear(); PFRelIsoAll0p4.clear();
+  mindrPF0p3.clear(); mindrPF0p4.clear();
+  mindr.clear(); maxdr.clear();
+  mindrJet.clear(); mindphiJet.clear(); mindetaJet.clear();
+  vec.clear();
+  //selected.clear();
+  nhitsbeforesv.clear(); ncompatible.clear(); ncompatibletotal.clear(); nexpectedhits.clear(); nexpectedhitsmultiple.clear(); nexpectedhitsmultipletotal.clear(); nexpectedhitstotal.clear();
+  //Muons.clear();
 
   if (!muons.isValid()) {
     return;
@@ -488,8 +552,8 @@ void SctParLooper::analyze(const edm::Event& iEvent, const edm::EventSetup& iSet
     const auto& mu = muonCollection[iMu];
     std::vector<int> matchedAndSelVtxIdxs;
     for (unsigned int matchedVtxIdx : mu.vtxIndx()) {
-      for (size_t iSV = 0; iSV < SVs.index.size(); ++iSV) {
-        if (matchedVtxIdx == SVs.index[iSV] && SVs.selected[iSV]) {
+      for (size_t iSV = 0; iSV < index.size(); ++iSV) {
+        if (matchedVtxIdx == index[iSV]) {
           matchedAndSelVtxIdxs.push_back(matchedVtxIdx);
         }
       }
@@ -498,38 +562,35 @@ void SctParLooper::analyze(const edm::Event& iEvent, const edm::EventSetup& iSet
     //if (matchedAndSelVtxIdxs.empty()) continue;  // Require match to selected SV
     //if (std::abs(mu.eta()) > 2.4) continue;
 
-    float pt = mu.pt();
-    std::cout << "pt = " << pt << std::endl;
-    float eta = mu.eta();
-    float phi = mu.phi();
 
-    Muons.vtxIdxs.push_back(matchedAndSelVtxIdxs);
-    Muons.saHits.push_back(mu.nValidStandAloneMuonHits());
-    Muons.saMatchedStats.push_back(mu.nStandAloneMuonMatchedStations());
-    Muons.muHits.push_back(mu.nValidRecoMuonHits());
-    Muons.muChambs.push_back(mu.nRecoMuonChambers());
-    Muons.muCSCDT.push_back(mu.nRecoMuonChambersCSCorDT());
-    Muons.muMatch.push_back(mu.nRecoMuonMatches());
-    Muons.muMatchedStats.push_back(mu.nRecoMuonMatchedStations());
-    Muons.muExpMatchedStats.push_back(mu.nRecoMuonExpectedMatchedStations());
-    Muons.muMatchedRPC.push_back(mu.nRecoMuonMatchedRPCLayers());
-    Muons.pixHits.push_back(mu.nValidPixelHits());
-    Muons.stripHits.push_back(mu.nValidStripHits());
-    Muons.pixLayers.push_back(mu.nPixelLayersWithMeasurement());
-    Muons.trkLayers.push_back(mu.nTrackerLayersWithMeasurement());
-    Muons.pt.push_back(pt);
-    Muons.eta.push_back(eta);
-    Muons.phi.push_back(phi);
-    Muons.ch.push_back(mu.charge());
-    //Muons.isGlobal.push_back(isGlobalMuon(mu.type()));
-    //Muons.isTracker.push_back(isTrackerMuon(mu.type()));
-    //Muons.isStandAlone.push_back(isStandAloneMuon(mu.type()));
+    vtxIdxs.push_back(matchedAndSelVtxIdxs);
+    saHits.push_back(mu.nValidStandAloneMuonHits());
+    saMatchedStats.push_back(mu.nStandAloneMuonMatchedStations());
+    muHits.push_back(mu.nValidRecoMuonHits());
+    muChambs.push_back(mu.nRecoMuonChambers());
+    muCSCDT.push_back(mu.nRecoMuonChambersCSCorDT());
+    muMatch.push_back(mu.nRecoMuonMatches());
+    muMatchedStats.push_back(mu.nRecoMuonMatchedStations());
+    muExpMatchedStats.push_back(mu.nRecoMuonExpectedMatchedStations());
+    muMatchedRPC.push_back(mu.nRecoMuonMatchedRPCLayers());
+    pixHits.push_back(mu.nValidPixelHits());
+    stripHits.push_back(mu.nValidStripHits());
+    pixLayers.push_back(mu.nPixelLayersWithMeasurement());
+    trkLayers.push_back(mu.nTrackerLayersWithMeasurement());
+    pt.push_back(mu.pt());
+    std::cout << "Muon pt = " << mu.pt() << std::endl;
+    eta.push_back(mu.eta());
+    phi.push_back(mu.phi());
+    ch.push_back(mu.charge());
+    //isGlobal.push_back(isGlobalMuon(mu.type()));
+    //isTracker.push_back(isTrackerMuon(mu.type()));
+    //isStandAlone.push_back(isStandAloneMuon(mu.type()));
 
-    Muons.chi2Ndof.push_back(mu.normalizedChi2());
+    mu_chi2Ndof.push_back(mu.normalizedChi2());
 
-    Muons.ecalIso.push_back(mu.ecalIso());
-    Muons.hcalIso.push_back(mu.hcalIso());
-    Muons.trackIso.push_back(mu.trackIso());
+    ecalIso.push_back(mu.ecalIso());
+    hcalIso.push_back(mu.hcalIso());
+    trackIso.push_back(mu.trackIso());
 
 
     //Muons.ecalRelIso.push_back(mu.ecalIso() / pt);
@@ -548,7 +609,6 @@ void SctParLooper::analyze(const edm::Event& iEvent, const edm::EventSetup& iSet
   }
 
   //Muons.sort();
-  std::cout << "muon size = " << Muons.pt.size() << std::endl;
   tout->Fill();
       
 }
@@ -558,8 +618,8 @@ void SctParLooper::beginJob() {
   tout = new TTree("tout","Run3ScoutingTree");
   //edm::Service<TFileService> fs;
   //tout = fs->make<TTree>("tout", "Run3ScoutingTree");
-  SV SVs;
-  Muon Muons; 
+  //SV SVs;
+  //Muon Muons; 
   /*
   for (size_t iL1 = 0; iL1 < l1Names.size(); ++iL1) {
     tout->Branch(l1Names[iL1].c_str(), &l1fired[iL1], (l1Names[iL1] + "/B").c_str());
@@ -586,54 +646,35 @@ void SctParLooper::beginJob() {
   tout->Branch("PV_x", &PV_x);
   tout->Branch("PV_y", &PV_y);
   tout->Branch("PV_z", &PV_z);
-  tout->Branch("SV_xe", &SVs.xe);
-  tout->Branch("SV_ye", &SVs.ye);
-  tout->Branch("SV_ze", &SVs.ze);
-  tout->Branch("SV_chi2", &SVs.chi2);
-  tout->Branch("SV_prob", &SVs.prob);
-  tout->Branch("SV_chi2Ndof", &SVs.chi2Ndof);
-  tout->Branch("SV_lxy", &SVs.lxy);
-  tout->Branch("SV_l3d", &SVs.l3d);
-  //tout->Branch("SV_mindx", &SVs.mindx);
-  //tout->Branch("SV_mindy", &SVs.mindy);
-  //tout->Branch("SV_mindz", &SVs.mindz);
-  //tout->Branch("SV_maxdx", &SVs.maxdx);
-  //tout->Branch("SV_maxdy", &SVs.maxdy);
-  //tout->Branch("SV_maxdz", &SVs.maxdz);
-  //tout->Branch("SV_selected", &SVs.selected);
-  //tout->Branch("SV_onModule", &SVs.onModule);
-  //tout->Branch("SV_onModuleWithinUnc", &SVs.onModuleWithinUnc);
-  //tout->Branch("SV_closestDet_x", &SVs.closestDet_x);
-  //tout->Branch("SV_closestDet_y", &SVs.closestDet_y);
-  //tout->Branch("SV_closestDet_z", &SVs.closestDet_z);
-  //tout->Branch("SV_minDistanceFromDet", &SVs.minDistanceFromDet);
-  //tout->Branch("SV_minDistanceFromDet_x", &SVs.minDistanceFromDet_x);
-  //tout->Branch("SV_minDistanceFromDet_y", &SVs.minDistanceFromDet_y);
-  //tout->Branch("SV_minDistanceFromDet_z", &SVs.minDistanceFromDet_z);
 
-  //tout->Branch("nMuonAssoc", &nMuonAssoc);
-  tout->Branch("Muon_vtxIdxs", &Muons.vtxIdxs);
-  tout->Branch("Muon_saHits", &Muons.saHits);
-  tout->Branch("Muon_saMatchedStats", &Muons.saMatchedStats);
-  tout->Branch("Muon_muHits", &Muons.muHits);
-  tout->Branch("Muon_muChambs", &Muons.muChambs);
-  tout->Branch("Muon_muCSCDT", &Muons.muCSCDT);
-  tout->Branch("Muon_muMatch", &Muons.muMatch);
-  tout->Branch("Muon_muMatchedStats", &Muons.muMatchedStats);
-  tout->Branch("Muon_muExpMatchedStats", &Muons.muExpMatchedStats);
-  tout->Branch("Muon_muMatchedRPC", &Muons.muMatchedRPC);
-  tout->Branch("Muon_pixHits", &Muons.pixHits);
-  tout->Branch("Muon_stripHits", &Muons.stripHits);
-  tout->Branch("Muon_pixLayers", &Muons.pixLayers);
-  tout->Branch("Muon_trkLayers", &Muons.trkLayers);
-  tout->Branch("Muon_pt", &Muons.pt);
-  tout->Branch("Muon_eta", &Muons.eta);
-  tout->Branch("Muon_phi", &Muons.phi);
-  //tout->Branch("Muon_ch", &Muons.ch);
-  //tout->Branch("Muon_chi2Ndof", &Muons.chi2Ndof);
-  //tout->Branch("Muon_ecalRelIso", &Muons.ecalRelIso);
-  //tout->Branch("Muon_hcalRelIso", &Muons.hcalRelIso);
-  //tout->Branch("Muon_trackRelIso", &Muons.trackRelIso);
+  //SV branches
+  tout->Branch("SV_xe", &xe);
+  tout->Branch("SV_ye", &ye);
+  tout->Branch("SV_ze", &ze);
+  tout->Branch("SV_chi2", &chi2);
+  tout->Branch("SV_prob", &prob);
+  tout->Branch("SV_chi2Ndof", &SV_chi2Ndof);
+  tout->Branch("SV_lxy", &lxy);
+  tout->Branch("SV_l3d", &l3d);
+  
+  //Muon branches
+  tout->Branch("Muon_vtxIdxs", &vtxIdxs);
+  tout->Branch("Muon_saHits", &saHits);
+  tout->Branch("Muon_saMatchedStats", &saMatchedStats);
+  tout->Branch("Muon_muHits", &muHits);
+  tout->Branch("Muon_muChambs", &muChambs);
+  tout->Branch("Muon_muCSCDT", &muCSCDT);
+  tout->Branch("Muon_muMatch", &muMatch);
+  tout->Branch("Muon_muMatchedStats", &muMatchedStats);
+  tout->Branch("Muon_muExpMatchedStats", &muExpMatchedStats);
+  tout->Branch("Muon_muMatchedRPC", &muMatchedRPC);
+  tout->Branch("Muon_pixHits", &pixHits);
+  tout->Branch("Muon_stripHits", &stripHits);
+  tout->Branch("Muon_pixLayers", &pixLayers);
+  tout->Branch("Muon_trkLayers", &trkLayers);
+  tout->Branch("Muon_pt", &pt);
+  tout->Branch("Muon_eta", &eta);
+  tout->Branch("Muon_phi", &phi);
 }
 
 
