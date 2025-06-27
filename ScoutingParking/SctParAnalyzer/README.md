@@ -1,6 +1,6 @@
 # nTuplizer and Analyzer
 
-This code currently takes 2024 central samples as inputs and outputs a flat TTree of variables to facilitate the plotting process. For the moment the data used is only from scouting, and the plotting is very preliminar (also there is a bug in the muon and SV ttrees, they are not being filled correctly).
+This code currently takes 2024 central samples as inputs and outputs a flat TTree of variables to facilitate the plotting process. For the moment the data used is only from scouting, and the plotting is very preliminar.
 
 ## HOW TO RUN:
 1. Set up a CMSSW release:
@@ -15,6 +15,7 @@ git clone https://github.com/JavierGarciadeCastro/ScoutingParking.git
 ```
 3. Run the Ntuplizer:
 ```bash
+scram b -j 8
 cd ScoutingParking/SctParAnalyzer
 cmsRun test/run_dark_shower.py
 ```
