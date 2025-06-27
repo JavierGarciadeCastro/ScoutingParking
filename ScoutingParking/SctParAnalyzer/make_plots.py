@@ -51,14 +51,6 @@ Muon_eta = tree["Muon_eta"].array()
 Muon_phi = tree["Muon_phi"].array()
 #Muon_chi2Ndof = tree["Muon_chi2Ndof"].array()
 
-print("L1_DoubleMu4er2p0_SQ_OS_dR_Max1p6: ", L1_DoubleMu4er2p0_SQ_OS_dR_Max1p6)
-print("L1_DoubleMu_15_7: ", L1_DoubleMu_15_7)
-print("Muon_pt:", Muon_pt)
-print("SV_lxy:", SV_lxy)
-print("PV_x:", PV_x)
-print("PV_z:", PV_z)
-print("SV_chi2:", SV_chi2)
-print("Muon_muHits:", Muon_muHits)
 # Plots
 # PV_x
 plt.hist(PV_x, bins=50, range=(-0.1,0.1), histtype='step', label='PV_x')
