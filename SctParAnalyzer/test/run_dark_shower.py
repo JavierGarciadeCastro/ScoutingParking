@@ -12,9 +12,9 @@ process.load("Configuration.StandardSequences.MagneticField_cff")
 process.load('Configuration.StandardSequences.FrontierConditions_GlobalTag_cff')
 process.GlobalTag.globaltag = '150X_mcRun3_2024_realistic_v2'
 
-#process.maxEvents = cms.untracked.PSet(input = cms.untracked.int32(5000))
+process.maxEvents = cms.untracked.PSet(input = cms.untracked.int32(5000))
 
-lifetime = 100
+lifetime = 10
 
 if lifetime ==1:
   process.source = cms.Source("PoolSource",

@@ -70,7 +70,8 @@ class SctParLooper : public edm::one::EDAnalyzer<> {
     //Scouting
     edm::EDGetTokenT<std::vector<Run3ScoutingVertex>> pvTokenScouting_;
     edm::EDGetTokenT<std::vector<Run3ScoutingVertex>> svTokenScouting_;
-    edm::EDGetTokenT<std::vector<Run3ScoutingMuon>> muTokenScouting_;
+    edm::EDGetTokenT<std::vector<Run3ScoutingMuon>> muTokenScoutingNoVtx_;
+    edm::EDGetTokenT<std::vector<Run3ScoutingMuon>> muTokenScoutingVtx_;
     edm::ESGetToken<TransientTrackBuilder, TransientTrackRecord> theTransientTrackBuilderToken_;
     //PAT
     edm::EDGetTokenT<std::vector<pat::Muon>> PATMuonCollection_;
@@ -86,6 +87,7 @@ class SctParLooper : public edm::one::EDAnalyzer<> {
     TTree* tout;
     unsigned int run, lumi, evtn;
     bool passL1, passHLT;
+    bool selected_sv;
     float sct_PV_x, sct_PV_y, sct_PV_z;
     Float_t BeamSpot_x0;
     Float_t BeamSpot_y0;
@@ -93,43 +95,25 @@ class SctParLooper : public edm::one::EDAnalyzer<> {
     Float_t BeamSpot_BeamWidthX;
     Float_t BeamSpot_BeamWidthY;
     //Scouting SV variables
-    std::vector<unsigned int> sct_index, sct_ndof;
+    std::vector<unsigned int> sct_ndof, nsct_SV;
     std::vector<float> sct_x, sct_y, sct_z;
     std::vector<float> sct_xe, sct_ye, sct_ze;
     std::vector<float> sct_chi2, sct_prob, sct_SV_chi2Ndof;
     std::vector<float> sct_lxy, sct_l3d;
-    std::vector<float> sct_mindx, sct_mindy, sct_mindz, sct_mindxy, sct_mind3d;
-    std::vector<float> sct_maxdx, sct_maxdy, sct_maxdz, sct_maxdxy, sct_maxd3d;
-    std::vector<int> sct_SV_selected;
-    std::vector<bool> sct_onModule, sct_onModuleWithinUnc;
-    std::vector<float> sct_closestDet_x, sct_closestDet_y, sct_closestDet_z;
-    std::vector<float> sct_minDistanceFromDet, sct_minDistanceFromDet_x, sct_minDistanceFromDet_y, sct_minDistanceFromDet_z;
+    
     //Scouting muon variables
-    std::vector<std::vector<int>> sct_vtxIdxs;
-    std::vector<unsigned int> sct_saHits, sct_saMatchedStats;
-    std::vector<unsigned int> sct_muHits, sct_muChambs, sct_muCSCDT, sct_muMatch, sct_muMatchedStats, sct_muExpMatchedStats, sct_muMatchedRPC;
-    std::vector<unsigned int> sct_pixHits, sct_stripHits;
-    std::vector<unsigned int> sct_pixLayers, sct_trkLayers;
-    std::vector<int> sct_bestAssocSVIdx, sct_bestAssocSVOverlapIdx;
-    std::vector<int> sct_ch;
-    std::vector<bool> sct_isGlobal, sct_isTracker;
-    std::vector<float> sct_pt, sct_eta, sct_phi;
-    std::vector<float> sct_mu_chi2Ndof;
-    std::vector<float> sct_ecalIso, sct_hcalIso, sct_trackIso;
-    std::vector<float> sct_ecalRelIso, sct_hcalRelIso, sct_trackRelIso;
-    std::vector<float> sct_dxy, sct_dxye, sct_dz, sct_dze;
-    std::vector<float> sct_dxysig, sct_dzsig;
-    std::vector<float> sct_phiCorr, sct_dxyCorr;
-    std::vector<float> sct_PFIsoChg0p3, sct_PFIsoChg0p4, sct_PFIsoAll0p3, sct_PFIsoAll0p4;
-    std::vector<float> sct_PFRelIsoChg0p3, sct_PFRelIsoChg0p4, sct_PFRelIsoAll0p3, sct_PFRelIsoAll0p4;
-    std::vector<float> sct_mindrPF0p3, sct_mindrPF0p4;
-    std::vector<float> sct_mindr, sct_maxdr;
-    std::vector<float> sct_invMass;
-    std::vector<float> sct_mindrJet, sct_mindphiJet, sct_mindetaJet;
-    std::vector<TLorentzVector> sct_vec;
-    std::vector<bool> sct_mu_selected;
+    std::vector<int> sct_ch_NoVtx, nsct_muons_NoVtx;
+    std::vector<bool> sct_isGlobal_NoVtx, sct_isTracker_NoVtx;
+    std::vector<float> sct_pt_NoVtx, sct_eta_NoVtx, sct_phi_NoVtx;
+    std::vector<float> sct_mu_chi2Ndof_NoVtx;
+    std::vector<std::vector<int>> sct_mu_vtxIdx_NoVtx;
 
-    std::vector<int> sct_nhitsbeforesv, sct_ncompatible, sct_ncompatibletotal, sct_nexpectedhits, sct_nexpectedhitsmultiple, sct_nexpectedhitsmultipletotal, sct_nexpectedhitstotal, nsct_muons;
+    std::vector<int> sct_ch_Vtx, nsct_muons_Vtx;
+    std::vector<bool> sct_isGlobal_Vtx, sct_isTracker_Vtx;
+    std::vector<float> sct_pt_Vtx, sct_eta_Vtx, sct_phi_Vtx;
+    std::vector<float> sct_mu_chi2Ndof_Vtx;
+    std::vector<std::vector<int>> sct_mu_vtxIdx_Vtx;
+
     //PAT muon variables
     std::vector<float> PAT_Muon_pt, PAT_Muon_phi, PAT_Muon_eta, PAT_vx, PAT_vy, PAT_lxy, PAT_invMass; 
     std::vector<int> nPAT_muons, PAT_pair_index, PAT_selected_index;
@@ -152,7 +136,8 @@ SctParLooper::SctParLooper(const edm::ParameterSet& iConfig) :
 
   pvTokenScouting_{consumes<std::vector<Run3ScoutingVertex>>(iConfig.getParameter<edm::InputTag>("hltScoutingPrimaryVertexPacker_primaryVtx"))},
   svTokenScouting_{consumes<std::vector<Run3ScoutingVertex>>(iConfig.getParameter<edm::InputTag>("hltScoutingMuonPacker_displacedVtx"))},
-  muTokenScouting_{consumes<std::vector<Run3ScoutingMuon>>(iConfig.getParameter<edm::InputTag>("Scoutingmuons"))},
+  muTokenScoutingNoVtx_{consumes<std::vector<Run3ScoutingMuon>>(iConfig.getParameter<edm::InputTag>("ScoutingmuonsNoVtx"))},
+  muTokenScoutingVtx_{consumes<std::vector<Run3ScoutingMuon>>(iConfig.getParameter<edm::InputTag>("ScoutingmuonsVtx"))},
   theTransientTrackBuilderToken_{esConsumes(edm::ESInputTag("", "TransientTrackBuilder"))},
   PATMuonCollection_{consumes<std::vector<pat::Muon>>(iConfig.getParameter<edm::InputTag>("PATMuonCollection"))},
   PATVertexCollection_{consumes<std::vector<reco::Vertex>>(iConfig.getParameter<edm::InputTag>("PATVertexCollection"))},
@@ -185,7 +170,8 @@ void SctParLooper::analyze(const edm::Event& iEvent, const edm::EventSetup& iSet
   const auto& theTransientTrackBuilder = iSetup.getData(theTransientTrackBuilderToken_);
   edm::Handle<std::vector<Run3ScoutingVertex>> ScoutingprimaryVertices;
   edm::Handle<std::vector<Run3ScoutingVertex>> ScoutingdisplacedVertices;
-  edm::Handle<std::vector<Run3ScoutingMuon>> Scoutingmuons;
+  edm::Handle<std::vector<Run3ScoutingMuon>> ScoutingmuonsNoVtx;
+  edm::Handle<std::vector<Run3ScoutingMuon>> ScoutingmuonsVtx;
   edm::Handle<std::vector<pat::Muon>> PATMuon;
   edm::Handle<std::vector<reco::Vertex>> PATVertex;
   edm::Handle<reco::BeamSpot> beamSpot;
@@ -195,7 +181,8 @@ void SctParLooper::analyze(const edm::Event& iEvent, const edm::EventSetup& iSet
 
   iEvent.getByToken(pvTokenScouting_, ScoutingprimaryVertices);
   iEvent.getByToken(svTokenScouting_, ScoutingdisplacedVertices);
-  iEvent.getByToken(muTokenScouting_, Scoutingmuons);
+  iEvent.getByToken(muTokenScoutingNoVtx_, ScoutingmuonsNoVtx);
+  iEvent.getByToken(muTokenScoutingVtx_, ScoutingmuonsVtx);
   iEvent.getByToken(PATMuonCollection_, PATMuon);
   iEvent.getByToken(PATVertexCollection_, PATVertex);
   iEvent.getByToken(muon_TrackCollection_, muon_Track);
@@ -240,36 +227,35 @@ void SctParLooper::analyze(const edm::Event& iEvent, const edm::EventSetup& iSet
       motherPdgId = GenPart[motherIdx].pdgId();
     }
     
-    if (genpart.pdgId()==13) {
-      if (motherPdgId==9900015 ) {   // Heavy neutral lepton
+    if (abs(genpart.pdgId())==13 && genpart.status() == 1) {
+      if (abs(motherPdgId)==9900015 ) {   
         ++nMuonDaughters;
         isSelected = true;
-        float vx1 = lastCopy.vx() * 10.; // mm
-        float vy1 = lastCopy.vy() * 10.; // mm
-        float vx0 = GenPart[motherIdx].vx() * 10.; // mm
-        float vy0 = GenPart[motherIdx].vy() * 10.; // mm
+        float vx1 = lastCopy.vx(); // mm
+        float vy1 = lastCopy.vy(); // mm
+        float vx0 = GenPart[motherIdx].vx(); // mm
+        float vy0 = GenPart[motherIdx].vy(); // mm
         gen_matchIndex.push_back(motherIdx);
         gen_ct.push_back ( ((vx1 - vx0)*GenPart[motherIdx].px() + (vy1 - vy0)*GenPart[motherIdx].py())*GenPart[motherIdx].mass()/(GenPart[motherIdx].pt()*GenPart[motherIdx].pt()) ); // in mm
+        gen_selected.push_back(isSelected);
+        gen_pt.push_back(genpart.pt());
+        gen_eta.push_back(genpart.eta());
+        gen_phi.push_back(genpart.phi());
+        gen_m.push_back(genpart.mass());
+        gen_vx.push_back(genpart.vx());
+        gen_vy.push_back(genpart.vy());
+        gen_vz.push_back(genpart.vz());
+        gen_lxy.push_back(TMath::Hypot(genpart.vx(), genpart.vy()));
+        gen_status.push_back(genpart.status());
+        gen_index.push_back(iGen);
+        gen_pdgId.push_back(genpart.pdgId());
       }
     }
-    gen_selected.push_back(isSelected);
-    gen_pt.push_back(genpart.pt());
-    gen_eta.push_back(genpart.eta());
-    gen_phi.push_back(genpart.phi());
-    gen_m.push_back(genpart.mass());
-    gen_vx.push_back(genpart.vx());
-    gen_vy.push_back(genpart.vy());
-    gen_vz.push_back(genpart.vz());
-    gen_lxy.push_back(TMath::Hypot(genpart.vx(), genpart.vy()));
-    gen_status.push_back(genpart.status());
-    gen_index.push_back(iGen);
-    gen_pdgId.push_back(genpart.pdgId());
-    //gen_motherIndex.push_back(motherIdx);
-    //gen_motherPdgId.push_back(motherPdgId);
+
   }
   nGenMuons.push_back(nMuonDaughters);
 
-  if (nMuonDaughters < 2) return;
+  //if (nMuonDaughters < 2) return;
 
   /////////////////////////
   //Triggers:
@@ -283,8 +269,13 @@ void SctParLooper::analyze(const edm::Event& iEvent, const edm::EventSetup& iSet
     std::cout << "Scouting displaced vertex not valid" << std::endl;
     return;
   }
-  if (!Scoutingmuons.isValid()) {
-    std::cout << "Scouting muons not valid" << std::endl;
+  if (!ScoutingmuonsNoVtx.isValid()) {
+    std::cout << "Scouting muons No Vtx not valid" << std::endl;
+    return;
+  }
+
+  if (!ScoutingmuonsVtx.isValid()) {
+    std::cout << "Scouting muons Vtx not valid" << std::endl;
     return;
   }
   l1GtUtils_->retrieveL1(iEvent, iSetup, algToken_);
@@ -345,242 +336,94 @@ void SctParLooper::analyze(const edm::Event& iEvent, const edm::EventSetup& iSet
   }
 
 
+  ///////////////////////////////////////////////////
+  ////////////// Scouting Muons ///////////////////////
+  ///////////////////////////////////////////////////
+  
+  sct_pt_NoVtx.clear(); sct_eta_NoVtx.clear(); sct_phi_NoVtx.clear(); sct_ch_NoVtx.clear(); sct_isGlobal_NoVtx.clear(); sct_isTracker_NoVtx.clear(); sct_mu_chi2Ndof_NoVtx.clear(); sct_mu_vtxIdx_NoVtx.clear();
+  sct_pt_Vtx.clear(); sct_eta_Vtx.clear(); sct_phi_Vtx.clear(); sct_ch_Vtx.clear(); sct_isGlobal_Vtx.clear(); sct_isTracker_Vtx.clear(); sct_mu_chi2Ndof_Vtx.clear(); sct_mu_vtxIdx_Vtx.clear();
 
-  //SV selection
-  sct_index.clear(); sct_ndof.clear();
-  sct_x.clear(); sct_y.clear(); sct_z.clear();
-  sct_xe.clear(); sct_ye.clear(); sct_ze.clear();
-  sct_chi2.clear(); sct_prob.clear(); sct_SV_chi2Ndof.clear();
-  sct_lxy.clear(); sct_l3d.clear();
-  sct_mindx.clear(); sct_mindy.clear(); sct_mindz.clear(); sct_mindxy.clear(); sct_mind3d.clear();
-  sct_maxdx.clear(); sct_maxdy.clear(); sct_maxdz.clear(); sct_maxdxy.clear(); sct_maxd3d.clear();
-  sct_SV_selected.clear();
-  sct_onModule.clear(); sct_onModuleWithinUnc.clear();
-  sct_closestDet_x.clear(); sct_closestDet_y.clear(); sct_closestDet_z.clear();
-  sct_minDistanceFromDet.clear(), sct_minDistanceFromDet_x.clear(), sct_minDistanceFromDet_y.clear(), sct_minDistanceFromDet_z.clear();
+  const auto& muonCollectionNoVtx = *ScoutingmuonsNoVtx;
+  unsigned int nMusNoVtx = muonCollectionNoVtx.size();
+  nsct_muons_NoVtx.push_back(nMusNoVtx);
+
+  for (unsigned int iMu = 0; iMu < nMusNoVtx; ++iMu) {
+    const auto& mu = muonCollectionNoVtx[iMu];
+    sct_pt_NoVtx.push_back(mu.pt());
+    sct_eta_NoVtx.push_back(mu.eta());
+    sct_phi_NoVtx.push_back(mu.phi());
+    sct_ch_NoVtx.push_back(mu.charge());
+    sct_isGlobal_NoVtx.push_back(mu.isGlobalMuon());
+    sct_isTracker_NoVtx.push_back(mu.isTrackerMuon());
+    sct_mu_chi2Ndof_NoVtx.push_back(mu.normalizedChi2());
+    sct_mu_vtxIdx_NoVtx.push_back(mu.vtxIndx());
+  }
+
+  const auto& muonCollectionVtx = *ScoutingmuonsVtx;
+  unsigned int nMus_Vtx = muonCollectionVtx.size();
+  nsct_muons_Vtx.push_back(nMus_Vtx);
+
+  for (unsigned int iMu_Vtx = 0; iMu_Vtx < nMus_Vtx; ++iMu_Vtx) {
+    const auto& mu_Vtx = muonCollectionVtx[iMu_Vtx];
+    sct_pt_Vtx.push_back(mu_Vtx.pt());
+    sct_eta_Vtx.push_back(mu_Vtx.eta());
+    sct_phi_Vtx.push_back(mu_Vtx.phi());
+    sct_ch_Vtx.push_back(mu_Vtx.charge());
+    sct_isGlobal_Vtx.push_back(mu_Vtx.isGlobalMuon());
+    sct_isTracker_Vtx.push_back(mu_Vtx.isTrackerMuon());
+    sct_mu_chi2Ndof_Vtx.push_back(mu_Vtx.normalizedChi2());
+    sct_mu_vtxIdx_Vtx.push_back(mu_Vtx.vtxIndx());
+  }
+
+  ///////////////////////////////////////////////////
+  ////////////// Scouting SVs ///////////////////////
+  ///////////////////////////////////////////////////
+
+  sct_ndof.clear(); sct_x.clear(); sct_y.clear(); sct_z.clear(); sct_xe.clear(); sct_ye.clear(); sct_ze.clear(); 
+  sct_chi2.clear(); sct_prob.clear(); sct_SV_chi2Ndof.clear(); sct_lxy.clear(); sct_l3d.clear();
+
   const auto& sct_svCollection = *ScoutingdisplacedVertices;
   unsigned int nSVs = sct_svCollection.size();
+  nsct_SV.push_back(nSVs);
 
-  //if (nSVs < 1){
-  //  return;
-  //}
-  //for (unsigned int iSV = 0; iSV < nSVs; ++iSV) {
-  //  const auto& sv = sct_svCollection[iSV];
-  //  if (!sv.isValidVtx()) continue;	
-  //  sct_index.push_back(iSV);
-  //  sct_ndof.push_back(sv.ndof());
-  //  sct_x.push_back(sv.x());
-  //  sct_y.push_back(sv.y());
-  //  sct_z.push_back(sv.z());
-  //  sct_xe.push_back(sv.xError());
-  //  sct_ye.push_back(sv.yError());
-  //  sct_ze.push_back(sv.zError());
-  //  sct_chi2.push_back(sv.chi2());
-  //  sct_prob.push_back(TMath::Prob(sv.chi2(), sv.ndof()));
-  //  sct_SV_chi2Ndof.push_back(sv.chi2()/sv.ndof());
-  //  float dx = sv.x() - sct_PV_x;
-  //  float dy = sv.y() - sct_PV_y;
-  //  float dz = sv.z() - sct_PV_z;
-  //  float sct_lxy_int = std::sqrt(dx * dx + dy * dy);
-  //  float sct_l3d_int = std::sqrt(sct_lxy_int * sct_lxy_int + dz * dz);
-//
-  //  sct_lxy.push_back(sct_lxy_int);
-  //  sct_l3d.push_back(sct_l3d_int);
-//
-  //  //bool passSel = (sv.xError() < maxXerr && sv.yError() < maxYerr && sv.zError() < maxZerr && sv.chi2() / sv.ndof() < maxChi2);
-  //  //sct_SV_selected.push_back(passSel);
-  //}
+  for (unsigned int iSV = 0; iSV < nSVs; ++iSV) {
+    const auto& sv = (*ScoutingdisplacedVertices)[iSV];
+    //sct_invMass.push_back((sct_mu1 + sct_mu2).mass());
+    sct_ndof.push_back(sv.ndof());
+    sct_x.push_back(sv.x());
+    sct_y.push_back(sv.y());
+    sct_z.push_back(sv.z());
+    sct_xe.push_back(sv.xError());
+    sct_ye.push_back(sv.yError());
+    sct_ze.push_back(sv.zError());
+    sct_chi2.push_back(sv.chi2());
+    sct_prob.push_back(TMath::Prob(sv.chi2(), sv.ndof()));
+    sct_SV_chi2Ndof.push_back(sv.chi2()/sv.ndof());
+    float dx = sv.x() - sct_PV_x;
+    float dy = sv.y() - sct_PV_y;
+    float dz = sv.z() - sct_PV_z;
+    float sct_lxy_int = std::sqrt(dx * dx + dy * dy);
+    float sct_l3d_int = std::sqrt(sct_lxy_int * sct_lxy_int + dz * dz);
+    sct_lxy.push_back(sct_lxy_int);
+    sct_l3d.push_back(sct_l3d_int);
+  }
   
-  //Muon selection  
-  sct_vtxIdxs.clear();
-  sct_saHits.clear(); sct_saMatchedStats.clear();
-  sct_muHits.clear(); sct_muChambs.clear(); sct_muCSCDT.clear(); sct_muMatch.clear(); sct_muMatchedStats.clear(); sct_muExpMatchedStats.clear(); sct_muMatchedRPC.clear();
-  sct_pixHits.clear(); sct_stripHits.clear();
-  sct_pixLayers.clear(); sct_trkLayers.clear();
-  sct_bestAssocSVIdx.clear(); sct_bestAssocSVOverlapIdx.clear();
-  sct_ch.clear();
-  sct_isGlobal.clear(); sct_isTracker.clear();
-  sct_pt.clear(); sct_eta.clear(); sct_phi.clear();
-  sct_mu_chi2Ndof.clear();
-  sct_ecalIso.clear(); sct_hcalIso.clear(); sct_trackIso.clear();
-  sct_ecalRelIso.clear(); sct_hcalRelIso.clear(); sct_trackRelIso.clear();
-  sct_dxy.clear(); sct_dxye.clear(); sct_dz.clear(); sct_dze.clear();
-  sct_dxysig.clear(); sct_dzsig.clear();
-  sct_phiCorr.clear(); sct_dxyCorr.clear();
-  sct_PFIsoChg0p3.clear(); sct_PFIsoAll0p3.clear();
-  sct_PFRelIsoChg0p3.clear(); sct_PFRelIsoAll0p3.clear();
-  sct_PFIsoChg0p4.clear(); sct_PFIsoAll0p4.clear();
-  sct_PFRelIsoChg0p4.clear(); sct_PFRelIsoAll0p4.clear();
-  sct_mindrPF0p3.clear(); sct_mindrPF0p4.clear();
-  sct_mindr.clear(); sct_maxdr.clear();
-  sct_mindrJet.clear(); sct_mindphiJet.clear(); sct_mindetaJet.clear();
-  sct_vec.clear();
-  sct_mu_selected.clear();
-  sct_nhitsbeforesv.clear(); sct_ncompatible.clear(); sct_ncompatibletotal.clear(); sct_nexpectedhits.clear(); sct_nexpectedhitsmultiple.clear(); sct_nexpectedhitsmultipletotal.clear(); sct_nexpectedhitstotal.clear();
-  sct_invMass.clear(); nsct_muons.clear();
 
-  if (!Scoutingmuons.isValid()) {
-    return;
-  }
-  const auto& muonCollection = *Scoutingmuons;
-  unsigned int nMus = muonCollection.size();
-  nsct_muons.push_back(nMus);
-  std::vector<bool> sct_mu_select(nMus, false);
-  for (unsigned int iMu = 0; iMu < nMus; ++iMu) {
-    if (nMus < 1){
-      break;
-    }
-    if (nSVs < 1){
-      break;
-    }
-    const auto& mu = muonCollection[iMu];
-    std::vector<int> sct_matchedAndSelVtxIdxs;
-    for (unsigned int matchedVtxIdx : mu.vtxIndx()) {
-      for (size_t iSV = 0; iSV < sct_index.size(); ++iSV) {
-        if (matchedVtxIdx == sct_index[iSV]) {
-          sct_matchedAndSelVtxIdxs.push_back(matchedVtxIdx);
-        }
-      }
-    }
-    //Pair muons if they have the same vertex index and find their invariant mass
-    for (unsigned int iMu2 = iMu + 1; iMu2 < nMus; ++iMu2) {
-      const auto& mu2 = muonCollection[iMu2];
-      const std::vector<int> vtxIndx_1 = mu.vtxIndx();
-      const std::vector<int> vtxIndx_2 = mu2.vtxIndx();
-      math::PtEtaPhiMLorentzVector sct_mu1(mu.pt(), mu.eta(), mu.phi(), mu.m());
-      math::PtEtaPhiMLorentzVector sct_mu2(mu2.pt(), mu2.eta(), mu2.phi(), mu2.m());
-      for (const auto& commonIdx : vtxIndx_2) {
-        if (std::find(vtxIndx_1.begin(), vtxIndx_1.end(), commonIdx) != vtxIndx_1.end()) {
-          sct_invMass.push_back((sct_mu1 + sct_mu2).mass());
-          if ((sct_mu1 + sct_mu2).mass() > 1.7 && (sct_mu1 + sct_mu2).mass() < 2.3 && mu.charge() != mu2.charge()) {  //If the dimuon system comes from Zd
-            sct_mu_select[iMu] = true;
-            sct_mu_select[iMu2] = true;
-            for (unsigned int iSV = 0; iSV < nSVs; ++iSV) {
-              const auto& sv = sct_svCollection[iSV];
-              if (!sv.isValidVtx()) continue;	
-              sct_index.push_back(iSV);
-              sct_ndof.push_back(sv.ndof());
-              sct_x.push_back(sv.x());
-              sct_y.push_back(sv.y());
-              sct_z.push_back(sv.z());
-              sct_xe.push_back(sv.xError());
-              sct_ye.push_back(sv.yError());
-              sct_ze.push_back(sv.zError());
-              sct_chi2.push_back(sv.chi2());
-              sct_prob.push_back(TMath::Prob(sv.chi2(), sv.ndof()));
-              sct_SV_chi2Ndof.push_back(sv.chi2()/sv.ndof());
-              float dx = sv.x() - sct_PV_x;
-              float dy = sv.y() - sct_PV_y;
-              float dz = sv.z() - sct_PV_z;
-              float sct_lxy_int = std::sqrt(dx * dx + dy * dy);
-              float sct_l3d_int = std::sqrt(sct_lxy_int * sct_lxy_int + dz * dz);
-              sct_lxy.push_back(sct_lxy_int);
-              sct_l3d.push_back(sct_l3d_int);
-            }      
-          }
-          break;
-        }
-      }
-    }
-    sct_pt.push_back(mu.pt());
-    sct_eta.push_back(mu.eta());
-    sct_phi.push_back(mu.phi());
-    sct_ch.push_back(mu.charge());
-    sct_isGlobal.push_back(mu.isGlobalMuon());
-    sct_isTracker.push_back(mu.isTrackerMuon());
-    sct_mu_chi2Ndof.push_back(mu.normalizedChi2());
-    sct_mu_selected.push_back(sct_mu_select[iMu]);
-  }
+
   /////////////////////////
-  //PAT muons:
+  ////// PAT muons ////////
   /////////////////////////
-  int nPatMuons      = PATMuon->size();
   PAT_Muon_pt.clear(); PAT_Muon_phi.clear(); PAT_Muon_eta.clear(); PAT_lxy.clear(); PAT_vx.clear(); PAT_vy.clear(); 
   PAT_invMass.clear(); nPAT_muons.clear(); PAT_muons_selected.clear(); PAT_pair_index.clear(); PAT_selected_index.clear();
 
-  float minChi2 = 10000;
+  unsigned int nPatMuons = PATMuon->size();
   nPAT_muons.push_back(nPatMuons);
-  int selected_index = 0;
-  int selected_pair_index = 0;
-  std::vector<bool> PAT_mu_select(nPatMuons, false);
-  
-  if (nPatMuons > 1) {
-    for (int i = 0; i < nPatMuons; i++) {
-      int min_i = 99;
-      int min_j = 99;
-      for (int j = i+1; j < nPatMuons; j++) {
-        if (i == j) continue;
-        const pat::Muon& mu_i = (*PATMuon)[i];
-        const pat::Muon& mu_j = (*PATMuon)[j];
-        reco::TrackRef tr_i;
-        reco::TrackRef tr_j;
-        if (mu_i.isGlobalMuon() && mu_j.isGlobalMuon()){
-          tr_i = mu_i.globalTrack();
-          tr_j = mu_j.globalTrack();
-        }
-        else if (mu_i.isTrackerMuon() && mu_j.isTrackerMuon()){
-          tr_i = mu_i.innerTrack();
-          tr_j = mu_j.innerTrack();
-        }
-        else continue;
 
-        trackPair testcandidate(thePrimaryVertex, beamSpotObject, theTransientTrackBuilder, tr_i, tr_j, false);
-        if (!testcandidate.hasValidVertex) continue ;
-        if (testcandidate.normalizedChi2 < minChi2) {
-          minChi2 = testcandidate.normalizedChi2;
-          min_i = i;
-          min_j = j;
-        }
-      }
-
-      if (min_i != 99 && min_j != 99) {
-        const pat::Muon& mu_1 = (*PATMuon)[min_i];
-        const pat::Muon& mu_2 = (*PATMuon)[min_j];
-        reco::TrackRef tr_1;
-        reco::TrackRef tr_2;
-        if (mu_1.isGlobalMuon() && mu_2.isGlobalMuon()){
-          tr_1 = mu_1.globalTrack();
-          tr_2 = mu_2.globalTrack();
-        }
-        else if (mu_1.isTrackerMuon() && mu_2.isTrackerMuon()){
-          tr_1 = mu_1.innerTrack();
-          tr_2 = mu_2.innerTrack();
-        }
-        trackPair muonPair(thePrimaryVertex, beamSpotObject, theTransientTrackBuilder, tr_1, tr_2, false);
-        std::vector<pat::Muon> sorted_mu;
-        sorted_mu.push_back(mu_1);
-        sorted_mu.push_back(mu_2);
-        std::sort(std::begin(sorted_mu), std::end(sorted_mu), [&](const pat::Muon mu1, const pat::Muon mu2) {
-          return mu_1.pt() > mu_2.pt();
-        });
-        pat::Muon leading_mu = sorted_mu.at(0);
-        pat::Muon subleading_mu = sorted_mu.at(1);
-        PAT_Muon_pt.push_back(leading_mu.pt());
-        PAT_Muon_pt.push_back(subleading_mu.pt());
-        PAT_Muon_phi.push_back(leading_mu.phi());
-        PAT_Muon_phi.push_back(subleading_mu.phi());
-        PAT_Muon_eta.push_back(leading_mu.eta());
-        PAT_Muon_eta.push_back(subleading_mu.eta());
-        float vx = muonPair.vx;
-        float vy = muonPair.vy;
-        float lxy = std::sqrt(vx * vx + vy * vy);
-        float invMass_pat = muonPair.mass;
-        if (invMass_pat > 1.7 && invMass_pat < 2.3) {  //If the dimuon system comes from Zd
-          PAT_mu_select[min_i] = true;
-          PAT_mu_select[min_j] = true;
-          PAT_selected_index.push_back(selected_index);
-          PAT_selected_index.push_back(selected_index + 1);
-          PAT_pair_index.push_back(selected_pair_index);
-        }
-        PAT_vx.push_back(vx);
-        PAT_vy.push_back(vy);
-        PAT_lxy.push_back(lxy);
-        PAT_invMass.push_back(invMass_pat);
-        selected_index = selected_index + 2;
-        ++selected_pair_index;
-      }  
-    PAT_muons_selected.push_back(PAT_mu_select[i]);
-    }
+  for (unsigned int iPAT = 0; iPAT < nPatMuons; ++iPAT) {
+    const pat::Muon& Pat = (*PATMuon)[iPAT];
+    PAT_Muon_pt.push_back(Pat.pt());
+    PAT_Muon_phi.push_back(Pat.phi());
+    PAT_Muon_eta.push_back(Pat.eta());
   }
 
 
@@ -589,7 +432,7 @@ void SctParLooper::analyze(const edm::Event& iEvent, const edm::EventSetup& iSet
 }
 
 void SctParLooper::beginJob() {
-  fout = new TFile("output_ctau-100-mA-2p00-mpi-10.root", "RECREATE");
+  fout = new TFile("output_test.root", "RECREATE");
   tout = new TTree("tout","Run3ScoutingTree");
 
   for (size_t iL1 = 0; iL1 < l1Seeds_.size(); ++iL1) {
@@ -610,6 +453,10 @@ void SctParLooper::beginJob() {
   tout->Branch("sct_PV_z", &sct_PV_z);
 
   //Scouting SV branches
+  tout->Branch("nsct_SV", &nsct_SV);
+  tout->Branch("sct_SV_x", &sct_x);
+  tout->Branch("sct_SV_y", &sct_y);
+  tout->Branch("sct_SV_z", &sct_z);
   tout->Branch("sct_SV_xe", &sct_xe);
   tout->Branch("sct_SV_ye", &sct_ye);
   tout->Branch("sct_SV_ze", &sct_ze);
@@ -618,31 +465,30 @@ void SctParLooper::beginJob() {
   tout->Branch("sct_SV_chi2Ndof", &sct_SV_chi2Ndof);
   tout->Branch("sct_SV_lxy", &sct_lxy);
   tout->Branch("sct_SV_l3d", &sct_l3d);
-  tout->Branch("sct_SV_selected", &sct_SV_selected);
   
   //Scouting Muon branches
+  tout->Branch("nsct_muons_NoVtx", &nsct_muons_NoVtx);
+  tout->Branch("sct_Muon_pt_NoVtx", &sct_pt_NoVtx);
+  tout->Branch("sct_Muon_eta_NoVtx", &sct_eta_NoVtx);
+  tout->Branch("sct_Muon_phi_NoVtx", &sct_phi_NoVtx);
+  tout->Branch("sct_Muon_isGlobal_NoVtx", &sct_isGlobal_NoVtx);
+  tout->Branch("sct_Muon_isTracker_NoVtx", &sct_isTracker_NoVtx);
+  tout->Branch("sct_Muon_vtxIdx_NoVtx", &sct_mu_vtxIdx_NoVtx);
 
-  tout->Branch("sct_Muon_pt", &sct_pt);
-  tout->Branch("sct_Muon_eta", &sct_eta);
-  tout->Branch("sct_Muon_phi", &sct_phi);
-  tout->Branch("sct_Muon_isGlobal", &sct_isGlobal);
-  tout->Branch("sct_Muon_isTracker", &sct_isTracker);
-  tout->Branch("sct_invMass", &sct_invMass);
-  tout->Branch("nsct_muons", &nsct_muons);
-  tout->Branch("sct_Muon_selected", &sct_mu_selected);
+  tout->Branch("nsct_muons_Vtx", &nsct_muons_Vtx);
+  tout->Branch("sct_Muon_pt_Vtx", &sct_pt_Vtx);
+  tout->Branch("sct_Muon_eta_Vtx", &sct_eta_Vtx);
+  tout->Branch("sct_Muon_phi_Vtx", &sct_phi_Vtx);
+  tout->Branch("sct_Muon_isGlobal_Vtx", &sct_isGlobal_Vtx);
+  tout->Branch("sct_Muon_isTracker_Vtx", &sct_isTracker_Vtx);
+  tout->Branch("sct_Muon_vtxIdx_Vtx", &sct_mu_vtxIdx_Vtx);
 
   //PAT Muon branches
   tout->Branch("PAT_Muon_pt", &PAT_Muon_pt);
   tout->Branch("PAT_Muon_eta", &PAT_Muon_eta);
   tout->Branch("PAT_Muon_phi", &PAT_Muon_phi);
-  tout->Branch("PAT_lxy", &PAT_lxy);
-  tout->Branch("PAT_vx", &PAT_vx);
-  tout->Branch("PAT_vy", &PAT_vy);
-  tout->Branch("PAT_invMass", &PAT_invMass);
   tout->Branch("nPAT_muons", &nPAT_muons);
-  tout->Branch("PAT_Muon_selected", &PAT_muons_selected);
-  tout->Branch("PAT_pair_index", &PAT_pair_index);
-  tout->Branch("PAT_selected_index", &PAT_selected_index);
+
 
   //GEN branches
   tout->Branch("Gen_pt", &gen_pt);
@@ -660,7 +506,6 @@ void SctParLooper::beginJob() {
   tout->Branch("Gen_motherPdgId", &gen_motherPdgId);
   tout->Branch("Gen_ct", &gen_ct);
   tout->Branch("Number_GenMuons", &nGenMuons);
-
 }
 
 
