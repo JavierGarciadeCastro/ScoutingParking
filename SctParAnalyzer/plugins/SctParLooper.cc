@@ -212,11 +212,12 @@ void SctParLooper::analyze(const edm::Event& iEvent, const edm::EventSetup& iSet
   unsigned int nGenParts = GenPart.size();
   int nMuonDaughters = 0;
   bool isSelected = false;
+  //First check if the event has at least 2 muons coming from A'
   for (unsigned int iGen = 0; iGen < nGenParts; ++iGen) {
     auto genpart = GenPart[iGen];
 
     int motherIdx = -1, motherPdgId = 0;
-    reco::GenParticle lastCopy=genpart; // Default value
+    reco::GenParticle lastCopy=genpart;
     if (genpart.numberOfMothers() > 0) {
       motherIdx = genpart.motherRef().index();
       while (GenPart[motherIdx].pdgId() == genpart.pdgId()) {
@@ -230,6 +231,29 @@ void SctParLooper::analyze(const edm::Event& iEvent, const edm::EventSetup& iSet
     if (abs(genpart.pdgId())==13 && genpart.status() == 1) {
       if (abs(motherPdgId)==9900015 ) {   
         ++nMuonDaughters;
+      }
+    }
+  }
+  if (nMuonDaughters < 2) return;
+  //If the event has 2 muons coming from A', do the whole implementation (if not, return)
+  nGenMuons.push_back(nMuonDaughters);
+
+  for (unsigned int iGen = 0; iGen < nGenParts; ++iGen) {
+    auto genpart = GenPart[iGen];
+    int motherIdx = -1, motherPdgId = 0;
+    reco::GenParticle lastCopy=genpart; 
+    if (genpart.numberOfMothers() > 0) {
+      motherIdx = genpart.motherRef().index();
+      while (GenPart[motherIdx].pdgId() == genpart.pdgId()) {
+        if (GenPart[motherIdx].numberOfMothers() == 0) break;
+        lastCopy = GenPart[motherIdx];
+        motherIdx = GenPart[motherIdx].motherRef().index();
+      }
+      motherPdgId = GenPart[motherIdx].pdgId();
+    }
+    
+    if (abs(genpart.pdgId())==13 && genpart.status() == 1) {
+      if (abs(motherPdgId)==9900015 ) {
         isSelected = true;
         float vx1 = lastCopy.vx(); // mm
         float vy1 = lastCopy.vy(); // mm
@@ -251,11 +275,7 @@ void SctParLooper::analyze(const edm::Event& iEvent, const edm::EventSetup& iSet
         gen_pdgId.push_back(genpart.pdgId());
       }
     }
-
   }
-  nGenMuons.push_back(nMuonDaughters);
-
-  //if (nMuonDaughters < 2) return;
 
   /////////////////////////
   //Triggers:
@@ -342,6 +362,7 @@ void SctParLooper::analyze(const edm::Event& iEvent, const edm::EventSetup& iSet
   
   sct_pt_NoVtx.clear(); sct_eta_NoVtx.clear(); sct_phi_NoVtx.clear(); sct_ch_NoVtx.clear(); sct_isGlobal_NoVtx.clear(); sct_isTracker_NoVtx.clear(); sct_mu_chi2Ndof_NoVtx.clear(); sct_mu_vtxIdx_NoVtx.clear();
   sct_pt_Vtx.clear(); sct_eta_Vtx.clear(); sct_phi_Vtx.clear(); sct_ch_Vtx.clear(); sct_isGlobal_Vtx.clear(); sct_isTracker_Vtx.clear(); sct_mu_chi2Ndof_Vtx.clear(); sct_mu_vtxIdx_Vtx.clear();
+  nsct_muons_NoVtx.clear(); nsct_muons_Vtx.clear();
 
   const auto& muonCollectionNoVtx = *ScoutingmuonsNoVtx;
   unsigned int nMusNoVtx = muonCollectionNoVtx.size();
@@ -432,7 +453,7 @@ void SctParLooper::analyze(const edm::Event& iEvent, const edm::EventSetup& iSet
 }
 
 void SctParLooper::beginJob() {
-  fout = new TFile("output_test.root", "RECREATE");
+  fout = new TFile("output_ctau-10-mA-2p00-mpi-10.root", "RECREATE");
   tout = new TTree("tout","Run3ScoutingTree");
 
   for (size_t iL1 = 0; iL1 < l1Seeds_.size(); ++iL1) {

@@ -7,9 +7,9 @@ import re
 
 #filenames = ["output_ctau-1-mA-2p00-mpi-10.root"]
 #filenames = ["output_ctau-10-mA-2p00-mpi-10.root"]
-#filenames = ["output_ctau-100-mA-2p00-mpi-10.root"]
+filenames = ["output_ctau-100-mA-2p00-mpi-10.root"]
 #filenames = ["output_ctau-1-mA-2p00-mpi-10.root", "output_ctau-10-mA-2p00-mpi-10.root", "output_ctau-100-mA-2p00-mpi-10.root"]
-filenames = ["output_test.root"]
+#filenames = ["output_test.root"]
 for filename in filenames:
   file = uproot.open(filename)
   tree = file["tout"]
@@ -129,7 +129,9 @@ for filename in filenames:
   #sct_SV_lxy = tree["sct_SV_lxy"].array()
   #sct_SV_l3d = tree["sct_SV_l3d"].array()
 
+  
   #Scouting muon variables:
+  
   sct_Muon_pt_NoVtx = tree["sct_Muon_pt_NoVtx"].array()
   sct_Muon_eta_NoVtx = tree["sct_Muon_eta_NoVtx"].array()
   sct_Muon_phi_NoVtx = tree["sct_Muon_phi_NoVtx"].array()
@@ -139,6 +141,8 @@ for filename in filenames:
   sct_Muon_eta_Vtx = tree["sct_Muon_eta_Vtx"].array()
   sct_Muon_phi_Vtx = tree["sct_Muon_phi_Vtx"].array()
   nsct_mu_Vtx = tree["nsct_muons_Vtx"].array()
+  
+
   
   ##PAT variables:
   PAT_Muon_pt = tree["PAT_Muon_pt"].array()
@@ -161,43 +165,41 @@ for filename in filenames:
   #Gen_motherIndex = tree["Gen_motherIndex"].array()
   #Gen_motherPdgId = tree["Gen_motherPdgId"].array()
   #Gen_ct = tree["Gen_ct"].array()
+  
   ngenMuons = tree["Number_GenMuons"].array()
 
 
-  gen_eta = ak.Array(Gen_eta)
-  gen_phi = ak.Array(Gen_phi)
-
-  pat_eta = ak.Array(PAT_Muon_eta)
-  pat_phi = ak.Array(PAT_Muon_phi)
-  sct_eta_NoVtx = ak.Array(sct_Muon_eta_NoVtx)
-  sct_phi_NoVtx = ak.Array(sct_Muon_phi_NoVtx)
-  sct_eta_Vtx = ak.Array(sct_Muon_eta_Vtx)
-  sct_phi_Vtx = ak.Array(sct_Muon_phi_Vtx)
-
-  deta_Pat = pat_eta[:, :, None] - gen_eta[:, None, :]
-  dphi_Pat = pat_phi[:, :, None] - gen_phi[:, None, :]
-  deta_sct_NoVtx = sct_eta_NoVtx[:, :, None] - gen_eta[:, None, :]
-  dphi_sct_NoVtx = sct_phi_NoVtx[:, :, None] - gen_phi[:, None, :]
-  deta_sct_Vtx = sct_eta_Vtx[:, :, None] - gen_eta[:, None, :]
-  dphi_sct_Vtx = sct_phi_Vtx[:, :, None] - gen_phi[:, None, :]
-  #dphi = (dphi + np.pi) % (2 * np.pi) - np.pi
-
-  dr_Pat = np.sqrt(deta_Pat**2 + dphi_Pat**2)
-  dr_sct_NoVtx = np.sqrt(deta_sct_NoVtx**2 + dphi_sct_NoVtx**2)
-  dr_sct_Vtx = np.sqrt(deta_sct_Vtx**2 + dphi_sct_Vtx**2)
-
-  dr_threshold = 0.1
-
-  is_PAT_match = ak.any(dr_Pat < dr_threshold, axis=2) 
-  is_sct_NoVtx_match = ak.any(dr_sct_NoVtx < dr_threshold, axis=2) 
-  is_sct_Vtx_match = ak.any(dr_sct_Vtx < dr_threshold, axis=2) 
-
-  
-
-  
   Draw_plots = True
   if Draw_plots:
     print('Plotting')
+
+    gen_eta = ak.Array(Gen_eta)
+    gen_phi = ak.Array(Gen_phi)
+
+    pat_eta = ak.Array(PAT_Muon_eta)
+    pat_phi = ak.Array(PAT_Muon_phi)
+    sct_eta_NoVtx = ak.Array(sct_Muon_eta_NoVtx)
+    sct_phi_NoVtx = ak.Array(sct_Muon_phi_NoVtx)
+    sct_eta_Vtx = ak.Array(sct_Muon_eta_Vtx)
+    sct_phi_Vtx = ak.Array(sct_Muon_phi_Vtx)
+
+    deta_Pat = pat_eta[:, :, None] - gen_eta[:, None, :]
+    dphi_Pat = pat_phi[:, :, None] - gen_phi[:, None, :]
+    deta_sct_NoVtx = sct_eta_NoVtx[:, :, None] - gen_eta[:, None, :]
+    dphi_sct_NoVtx = sct_phi_NoVtx[:, :, None] - gen_phi[:, None, :]
+    deta_sct_Vtx = sct_eta_Vtx[:, :, None] - gen_eta[:, None, :]
+    dphi_sct_Vtx = sct_phi_Vtx[:, :, None] - gen_phi[:, None, :]
+    #dphi = (dphi + np.pi) % (2 * np.pi) - np.pi
+
+    dr_Pat = np.sqrt(deta_Pat**2 + dphi_Pat**2)
+    dr_sct_NoVtx = np.sqrt(deta_sct_NoVtx**2 + dphi_sct_NoVtx**2)
+    dr_sct_Vtx = np.sqrt(deta_sct_Vtx**2 + dphi_sct_Vtx**2)
+
+    dr_threshold = 0.1
+
+    is_PAT_match = ak.any(dr_Pat < dr_threshold, axis=2) 
+    is_sct_NoVtx_match = ak.any(dr_sct_NoVtx < dr_threshold, axis=2) 
+    is_sct_Vtx_match = ak.any(dr_sct_Vtx < dr_threshold, axis=2) 
 
     x_bins = np.arange(0, 100 + 1, 1)
     nevents = len(Gen_eta)
