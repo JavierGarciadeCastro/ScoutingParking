@@ -14,7 +14,7 @@ process.GlobalTag.globaltag = '150X_mcRun3_2024_realistic_v2'
 
 process.maxEvents = cms.untracked.PSet(input = cms.untracked.int32(750000))
 
-lifetime = 10
+lifetime = 1
 
 if lifetime ==1:
   process.source = cms.Source("PoolSource",

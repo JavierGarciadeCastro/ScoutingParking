@@ -99,7 +99,7 @@ class SctParLooper : public edm::one::EDAnalyzer<> {
     std::vector<float> sct_x, sct_y, sct_z;
     std::vector<float> sct_xe, sct_ye, sct_ze;
     std::vector<float> sct_chi2, sct_prob, sct_SV_chi2Ndof;
-    std::vector<float> sct_lxy, sct_l3d;
+    std::vector<float> sct_lxy, sct_l3d; 
     
     //Scouting muon variables
     std::vector<int> sct_ch_NoVtx, nsct_muons_NoVtx;
@@ -116,9 +116,7 @@ class SctParLooper : public edm::one::EDAnalyzer<> {
 
     //PAT muon variables
     std::vector<float> PAT_Muon_pt, PAT_Muon_phi, PAT_Muon_eta, PAT_vx, PAT_vy, PAT_lxy, PAT_invMass; 
-    std::vector<int> nPAT_muons, PAT_pair_index, PAT_selected_index;
-    std::vector<bool> PAT_muons_selected;
-    //std::vector<std::vector<bool>> PAT_muons_selected;
+    std::vector<int> PAT_pair_index, nPAT_muons;
 
     //GEN particle variables
     std::vector<float> gen_pt, gen_eta, gen_phi, gen_m;
@@ -435,25 +433,79 @@ void SctParLooper::analyze(const edm::Event& iEvent, const edm::EventSetup& iSet
   ////// PAT muons ////////
   /////////////////////////
   PAT_Muon_pt.clear(); PAT_Muon_phi.clear(); PAT_Muon_eta.clear(); PAT_lxy.clear(); PAT_vx.clear(); PAT_vy.clear(); 
-  PAT_invMass.clear(); nPAT_muons.clear(); PAT_muons_selected.clear(); PAT_pair_index.clear(); PAT_selected_index.clear();
+  PAT_invMass.clear(); nPAT_muons.clear(); PAT_pair_index.clear();
+  PAT_lxy.clear(); PAT_vx.clear(); PAT_vy.clear(); PAT_invMass.clear(); PAT_pair_index.clear();
 
   unsigned int nPatMuons = PATMuon->size();
   nPAT_muons.push_back(nPatMuons);
-
+  float minChi2 = 10000;
   for (unsigned int iPAT = 0; iPAT < nPatMuons; ++iPAT) {
     const pat::Muon& Pat = (*PATMuon)[iPAT];
     PAT_Muon_pt.push_back(Pat.pt());
     PAT_Muon_phi.push_back(Pat.phi());
     PAT_Muon_eta.push_back(Pat.eta());
+
+    int min_i = 99;
+    int min_j = 99;
+    for (unsigned int i = 0; i < nPatMuons; i++) {
+      for (unsigned int j = i+1; j < nPatMuons; j++) {
+        if (i == j) continue;
+        const pat::Muon& mu_i = (*PATMuon)[i];
+        const pat::Muon& mu_j = (*PATMuon)[j];
+        reco::TrackRef tr_i;
+        reco::TrackRef tr_j;
+        if (mu_i.isGlobalMuon() && mu_j.isGlobalMuon()){
+          tr_i = mu_i.globalTrack();
+          tr_j = mu_j.globalTrack();
+        }
+        else if (mu_i.isTrackerMuon() && mu_j.isTrackerMuon()){
+          tr_i = mu_i.innerTrack();
+          tr_j = mu_j.innerTrack();
+        }
+        else continue;
+
+        trackPair testcandidate(thePrimaryVertex, beamSpotObject, theTransientTrackBuilder, tr_i, tr_j, false);
+        if (!testcandidate.hasValidVertex) continue ;
+        if (testcandidate.normalizedChi2 < minChi2) {
+          minChi2 = testcandidate.normalizedChi2;
+          min_i = i;
+          min_j = j;
+        }
+      }
+
+      if (min_i != 99 && min_j != 99) {
+        const pat::Muon& mu_1 = (*PATMuon)[min_i];
+        const pat::Muon& mu_2 = (*PATMuon)[min_j];
+        reco::TrackRef tr_1;
+        reco::TrackRef tr_2;
+        if (mu_1.isGlobalMuon() && mu_2.isGlobalMuon()){
+          tr_1 = mu_1.globalTrack();
+          tr_2 = mu_2.globalTrack();
+        }
+        else if (mu_1.isTrackerMuon() && mu_2.isTrackerMuon()){
+          tr_1 = mu_1.innerTrack();
+          tr_2 = mu_2.innerTrack();
+        }
+        trackPair muonPair(thePrimaryVertex, beamSpotObject, theTransientTrackBuilder, tr_1, tr_2, false);
+        float vx = muonPair.vx;
+        float vy = muonPair.vy;
+        float lxy = std::sqrt(vx * vx + vy * vy);
+        float invMass_pat = muonPair.mass;
+        PAT_vx.push_back(vx);
+        PAT_vy.push_back(vy);
+        PAT_lxy.push_back(lxy);
+        PAT_invMass.push_back(invMass_pat);
+        PAT_pair_index.push_back(min_i);
+        PAT_pair_index.push_back(min_j);
+        break;
+      }
+    }
   }
-
-
   tout->Fill();
-      
 }
 
 void SctParLooper::beginJob() {
-  fout = new TFile("output_ctau-10-mA-2p00-mpi-10.root", "RECREATE");
+  fout = new TFile("output_ctau-1-mA-2p00-mpi-10.root", "RECREATE");
   tout = new TTree("tout","Run3ScoutingTree");
 
   for (size_t iL1 = 0; iL1 < l1Seeds_.size(); ++iL1) {
@@ -504,11 +556,16 @@ void SctParLooper::beginJob() {
   tout->Branch("sct_Muon_isTracker_Vtx", &sct_isTracker_Vtx);
   tout->Branch("sct_Muon_vtxIdx_Vtx", &sct_mu_vtxIdx_Vtx);
 
-  //PAT Muon branches
+  //PAT Muon branchesPAT_pair_index
   tout->Branch("PAT_Muon_pt", &PAT_Muon_pt);
   tout->Branch("PAT_Muon_eta", &PAT_Muon_eta);
   tout->Branch("PAT_Muon_phi", &PAT_Muon_phi);
+  tout->Branch("PAT_lxy", &PAT_lxy);
+  tout->Branch("PAT_vx", &PAT_vx);
+  tout->Branch("PAT_vy", &PAT_vy);
+  tout->Branch("PAT_invMass", &PAT_invMass);
   tout->Branch("nPAT_muons", &nPAT_muons);
+  tout->Branch("PAT_pair_index", &PAT_pair_index);
 
 
   //GEN branches
