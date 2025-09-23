@@ -9,8 +9,8 @@ from collections import Counter
 #filenames = ["output_ctau-1-mA-2p00-mpi-10.root"]
 #filenames = ["output_ctau-10-mA-2p00-mpi-10.root"]
 #filenames = ["output_ctau-100-mA-2p00-mpi-10.root"]
-#filenames = ["output_ctau-1-mA-2p00-mpi-10.root", "output_ctau-10-mA-2p00-mpi-10.root", "output_ctau-100-mA-2p00-mpi-10.root"]
-filenames = ["output_test.root"]
+filenames = ["output_ctau-1-mA-2p00-mpi-10.root", "output_ctau-10-mA-2p00-mpi-10.root", "output_ctau-100-mA-2p00-mpi-10.root"]
+#filenames = ["output_test.root"]
 for filename in filenames:
   file = uproot.open(filename)
   tree = file["tout"]
@@ -233,11 +233,13 @@ for filename in filenames:
           dphi_Pat = PAT_Muon_phi[i][k] - Gen_phi[i][j]
           if dphi_Pat > np.pi:
               dphi_Pat = 2*np.pi - dphi_Pat
+          elif dphi_Pat < -np.pi:
+              dphi_Pat += 2*np.pi
           dr_Pat = np.sqrt(deta_Pat**2 + dphi_Pat**2)
           if dr_Pat < dr_threshold:
             event_PAT_match[k] = True
             event_matches_Pat.append((j, k))
-            break
+            
 
 
         for k in range(len(sct_Muon_pt_NoVtx[i])):
@@ -247,11 +249,13 @@ for filename in filenames:
           dphi_NoVtx = sct_Muon_phi_NoVtx[i][k] - Gen_phi[i][j]
           if dphi_NoVtx > np.pi:
               dphi_NoVtx = 2*np.pi - dphi_NoVtx
+          elif dphi_NoVtx < -np.pi:
+              dphi_NoVtx += 2*np.pi
           dr_NoVtx = np.sqrt(deta_NoVtx**2 + dphi_NoVtx**2)
           if dr_NoVtx < dr_threshold:
             event_NoVtx_match[k] = True
             event_matches_NoVtx.append((j, k))
-            break
+        
 
         for k in range(len(sct_Muon_pt_Vtx[i])):
           if event_Vtx_match[k] == True:
@@ -260,11 +264,13 @@ for filename in filenames:
           dphi_Vtx = sct_Muon_phi_Vtx[i][k] - Gen_phi[i][j]
           if dphi_Vtx > np.pi:
               dphi_Vtx = 2*np.pi - dphi_Vtx
+          elif dphi_Vtx < -np.pi:
+              dphi_Vtx += 2*np.pi
           dr_Vtx = np.sqrt(deta_Vtx**2 + dphi_Vtx**2)
           if dr_Vtx < dr_threshold:
             event_Vtx_match[k] = True
             event_matches_Vtx.append((j, k))
-            break
+            
       is_PAT_match.append(event_PAT_match)
       matched_indices_Pat.append(event_matches_Pat)
 
@@ -273,7 +279,7 @@ for filename in filenames:
 
       is_Vtx_match.append(event_Vtx_match)
       matched_indices_Vtx.append(event_matches_Vtx)
-      '''
+      
       
       matched_pat_pts = [pt for j, pt in enumerate(PAT_Muon_pt[i]) if is_PAT_match[i][j]]
       if len(matched_pat_pts) >= 2:
@@ -402,7 +408,7 @@ for filename in filenames:
     plt.legend()
     plt.savefig(f"pt_trigger_efficiency_ctau_{ctau}.png")
     plt.clf()
-    '''
+    
 
     ################################
     ###### lxy distributions #######
@@ -453,22 +459,6 @@ for filename in filenames:
         if j1 in gen_to_Vtx_match:
           selected_lxy_Vtx.append(Gen_lxy[i][j1])
           Vtx_selected.append(Gen_lxy[i][j1])
-        #for j2 in range(j1+1, len(Gen_pt[i])):
-        #  if j1 in gen_to_pat_match and j2 in gen_to_pat_match:
-        #    if abs(Gen_lxy[i][j1] - Gen_lxy[i][j2]) < 1e-4:
-        #      if Gen_lxy[i][j1] not in Pat_selected:
-        #        selected_lxy_Pat.append(Gen_lxy[i][j1])
-        #        Pat_selected.append(Gen_lxy[i][j1])
-        #  if j1 in gen_to_NoVtx_match and j2 in gen_to_NoVtx_match:
-        #    if abs(Gen_lxy[i][j1] - Gen_lxy[i][j2]) < 1e-4:
-        #      if Gen_lxy[i][j1] not in NoVtx_selected:
-        #        selected_lxy_NoVtx.append(Gen_lxy[i][j1])
-        #        NoVtx_selected.append(Gen_lxy[i][j1])
-        #  if j1 in gen_to_Vtx_match and j2 in gen_to_Vtx_match:
-        #    if abs(Gen_lxy[i][j1] - Gen_lxy[i][j2]) < 1e-4:
-        #        if Gen_lxy[i][j1] not in Vtx_selected:
-        #          selected_lxy_Vtx.append(Gen_lxy[i][j1])
-        #          Vtx_selected.append(Gen_lxy[i][j1])
       if pass_L1_doubleMu[i] and pass_DoubleMu_Parking[i]:
         if NoVtx_selected:
           selected_trigger_lxy_NoVtx.append(min(NoVtx_selected))
@@ -480,13 +470,13 @@ for filename in filenames:
 
 
 
-    lxy_bins = np.linspace(0, 20, 101)  # 100 bins means 101 edges
+    lxy_bins = np.linspace(0, 70, 101)  # 100 bins means 101 edges
     plt.figure()
     plt.hist(selected_Gen_lxy, bins=lxy_bins, histtype='step', label="Gen Lxy (≥2 muons)")
     plt.hist(selected_lxy_Pat, bins=lxy_bins, histtype='step', label="RECO PAT Lxy")
     plt.hist(selected_lxy_NoVtx, bins=lxy_bins, histtype='step', label="RECO SCT Lxy (NoVtx)")
     plt.hist(selected_lxy_Vtx, bins=lxy_bins, histtype='step', label="RECO SCT Lxy (Vtx)")
-    plt.xlabel("Lxy [mm]")  # or cm depending on your units
+    plt.xlabel("Lxy [cm]")  # or cm depending on your units
     plt.ylabel("Entries")
     plt.legend()
     plt.text(0.75, 0.5, info_text, transform=plt.gca().transAxes, fontsize=10, verticalalignment='center', bbox=dict(boxstyle="round", facecolor="white", alpha=0.7))
@@ -515,7 +505,7 @@ for filename in filenames:
     plt.plot(bin_centers, eff_lxy_NoVtx, drawstyle='steps-mid', label="SCT NoVtx")
     plt.plot(bin_centers, eff_lxy_Vtx, drawstyle='steps-mid', label="SCT Vtx")
     
-    plt.xlabel("Lxy [mm]")
+    plt.xlabel("Lxy [cm]")
     plt.ylabel("Efficiency")
     plt.ylim(0, 1.1)
     plt.grid(True)
@@ -532,7 +522,7 @@ for filename in filenames:
     plt.hist(selected_trigger_lxy_Pat, bins=lxy_bins, histtype='step', label="PAT Lxy")
     plt.hist(selected_trigger_lxy_NoVtx, bins=lxy_bins, histtype='step', label="SCT Lxy (NoVtx)")
     plt.hist(selected_trigger_lxy_Vtx, bins=lxy_bins, histtype='step', label="SCT Lxy (Vtx)")
-    plt.xlabel("Lxy [mm]")  # or cm depending on your units
+    plt.xlabel("Lxy [cm]")
     plt.ylabel("Entries")
     plt.legend()
     plt.text(0.75, 0.5, info_text, transform=plt.gca().transAxes, fontsize=10, verticalalignment='center', bbox=dict(boxstyle="round", facecolor="white", alpha=0.7))
@@ -560,7 +550,7 @@ for filename in filenames:
     plt.plot(bin_centers, eff_trigger_lxy_NoVtx, drawstyle='steps-mid', label="SCT NoVtx")
     plt.plot(bin_centers, eff_trigger_lxy_Vtx, drawstyle='steps-mid', label="SCT NoVtx")
     
-    plt.xlabel("Lxy [mm]")
+    plt.xlabel("Lxy [cm]")
     plt.ylabel("Efficiency")
     plt.ylim(0, 1.1)
     plt.grid(True)
