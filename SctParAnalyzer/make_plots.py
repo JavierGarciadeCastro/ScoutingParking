@@ -8,8 +8,8 @@ from collections import Counter
 
 #filenames = ["output_ctau-1-mA-2p00-mpi-10.root"]
 #filenames = ["output_ctau-10-mA-2p00-mpi-10.root"]
-#filenames = ["output_ctau-100-mA-2p00-mpi-10.root"]
-filenames = ["output_ctau-1-mA-2p00-mpi-10.root", "output_ctau-10-mA-2p00-mpi-10.root", "output_ctau-100-mA-2p00-mpi-10.root"]
+filenames = ["output_ctau-100-mA-2p00-mpi-10.root"]
+#filenames = ["output_ctau-1-mA-2p00-mpi-10.root", "output_ctau-10-mA-2p00-mpi-10.root", "output_ctau-100-mA-2p00-mpi-10.root"]
 #filenames = ["output_test.root"]
 for filename in filenames:
   file = uproot.open(filename)
@@ -170,8 +170,51 @@ for filename in filenames:
   #Gen_motherPdgId = tree["Gen_motherPdgId"].array()
   #Gen_ct = tree["Gen_ct"].array() 
   ngenMuons = tree["Number_GenMuons"].array()
+  '''
+  #For debugging purposes
+  is_PAT_match = []
+  matched_indices_Pat = []
+  is_NoVtx_match = []
+  matched_indices_NoVtx = []
 
+  is_Vtx_match = []
+  matched_indices_Vtx = []
+  dr_threshold = 0.1
 
+  for i in range(50):
+
+      event_PAT_match = [False] * len(PAT_Muon_pt[i])
+      event_matches_Pat = {}
+
+      event_NoVtx_match = [False] * len(sct_Muon_pt_NoVtx[i])
+      event_matches_NoVtx = []
+
+      event_Vtx_match = [False] * len(sct_Muon_pt_Vtx[i])
+      event_matches_Vtx = []
+
+      for j in range(len(Gen_pt[i])):
+        for k in range(len(PAT_Muon_pt[i])):
+          deta_Pat = PAT_Muon_eta[i][k] - Gen_eta[i][j]
+          dphi_Pat = PAT_Muon_phi[i][k] - Gen_phi[i][j]
+          if dphi_Pat > np.pi:
+              dphi_Pat = 2*np.pi - dphi_Pat
+          elif dphi_Pat < -np.pi:
+              dphi_Pat += 2*np.pi
+          dr_Pat = np.sqrt(deta_Pat**2 + dphi_Pat**2)
+          if dr_Pat < dr_threshold:
+            event_PAT_match[k] = True
+            if j not in event_matches_Pat:
+                event_matches_Pat[j] = []
+            event_matches_Pat[j].append(k)
+      print(event_matches_Pat)
+      print(len(Gen_pt[i]))
+      print(Gen_pt[i])
+      print(len(PAT_Muon_pt[i]))
+      print(PAT_Muon_pt[i])
+      is_PAT_match.append(event_PAT_match)
+      matched_indices_Pat.append(event_matches_Pat)
+  print(matched_indices_Pat)
+  '''
   Draw_plots = True
 
   if Draw_plots:
@@ -217,18 +260,16 @@ for filename in filenames:
       subleading_gen_pt.append(sorted_gen_pts[1])
 
       event_PAT_match = [False] * len(PAT_Muon_pt[i])
-      event_matches_Pat = []
+      event_matches_Pat = {}
 
       event_NoVtx_match = [False] * len(sct_Muon_pt_NoVtx[i])
-      event_matches_NoVtx = []
+      event_matches_NoVtx = {}
 
       event_Vtx_match = [False] * len(sct_Muon_pt_Vtx[i])
-      event_matches_Vtx = []
+      event_matches_Vtx = {}
 
       for j in range(len(Gen_pt[i])):
         for k in range(len(PAT_Muon_pt[i])):
-          if event_PAT_match[k] == True:
-            continue
           deta_Pat = PAT_Muon_eta[i][k] - Gen_eta[i][j]
           dphi_Pat = PAT_Muon_phi[i][k] - Gen_phi[i][j]
           if dphi_Pat > np.pi:
@@ -238,13 +279,13 @@ for filename in filenames:
           dr_Pat = np.sqrt(deta_Pat**2 + dphi_Pat**2)
           if dr_Pat < dr_threshold:
             event_PAT_match[k] = True
-            event_matches_Pat.append((j, k))
+            if j not in event_matches_Pat:
+                event_matches_Pat[j] = []
+            event_matches_Pat[j].append(k)
             
 
 
         for k in range(len(sct_Muon_pt_NoVtx[i])):
-          if event_NoVtx_match[k] == True:
-            continue
           deta_NoVtx = sct_Muon_eta_NoVtx[i][k] - Gen_eta[i][j]
           dphi_NoVtx = sct_Muon_phi_NoVtx[i][k] - Gen_phi[i][j]
           if dphi_NoVtx > np.pi:
@@ -254,12 +295,11 @@ for filename in filenames:
           dr_NoVtx = np.sqrt(deta_NoVtx**2 + dphi_NoVtx**2)
           if dr_NoVtx < dr_threshold:
             event_NoVtx_match[k] = True
-            event_matches_NoVtx.append((j, k))
-        
+            if j not in event_matches_NoVtx:
+                event_matches_NoVtx[j] = []
+            event_matches_NoVtx[j].append(k) 
 
         for k in range(len(sct_Muon_pt_Vtx[i])):
-          if event_Vtx_match[k] == True:
-            continue
           deta_Vtx = sct_Muon_eta_Vtx[i][k] - Gen_eta[i][j]
           dphi_Vtx = sct_Muon_phi_Vtx[i][k] - Gen_phi[i][j]
           if dphi_Vtx > np.pi:
@@ -269,7 +309,9 @@ for filename in filenames:
           dr_Vtx = np.sqrt(deta_Vtx**2 + dphi_Vtx**2)
           if dr_Vtx < dr_threshold:
             event_Vtx_match[k] = True
-            event_matches_Vtx.append((j, k))
+            if j not in event_matches_Vtx:
+                event_matches_Vtx[j] = []
+            event_matches_Vtx[j].append(k)
             
       is_PAT_match.append(event_PAT_match)
       matched_indices_Pat.append(event_matches_Pat)
@@ -280,7 +322,7 @@ for filename in filenames:
       is_Vtx_match.append(event_Vtx_match)
       matched_indices_Vtx.append(event_matches_Vtx)
       
-      
+      ''' 
       matched_pat_pts = [pt for j, pt in enumerate(PAT_Muon_pt[i]) if is_PAT_match[i][j]]
       if len(matched_pat_pts) >= 2:
         subleading_Pat_pt.append(sorted_gen_pts[1])
@@ -408,7 +450,7 @@ for filename in filenames:
     plt.legend()
     plt.savefig(f"pt_trigger_efficiency_ctau_{ctau}.png")
     plt.clf()
-    
+    '''
 
     ################################
     ###### lxy distributions #######
@@ -432,20 +474,10 @@ for filename in filenames:
           selected_Gen_lxy.append(Gen_lxy[i][j])
       selected_trigger_lxy_Gen.append(min(gen_selected))
 
-      if isinstance(matched_indices_Pat[i], list) and all(isinstance(x, tuple) and len(x) >= 2 for x in matched_indices_Pat[i]):
-        gen_to_pat_match = {j: k for j, k in matched_indices_Pat[i]}
-      else:
-        gen_to_pat_match = {}
+      gen_to_pat_match = matched_indices_Pat[i] if isinstance(matched_indices_Pat[i], dict) else {}
+      gen_to_NoVtx_match = matched_indices_NoVtx[i] if isinstance(matched_indices_NoVtx[i], dict) else {}
+      gen_to_Vtx_match = matched_indices_Vtx[i] if isinstance(matched_indices_Vtx[i], dict) else {}
 
-      if isinstance(matched_indices_NoVtx[i], list) and all(isinstance(x, tuple) and len(x) >= 2 for x in matched_indices_NoVtx[i]):
-        gen_to_NoVtx_match = {j: k for j, k in matched_indices_NoVtx[i]}
-      else:
-        gen_to_NoVtx_match = {}
-
-      if isinstance(matched_indices_Vtx[i], list) and all(isinstance(x, tuple) and len(x) >= 2 for x in matched_indices_Vtx[i]):
-        gen_to_Vtx_match = {j: k for j, k in matched_indices_Vtx[i]}
-      else:
-        gen_to_Vtx_match = {}
       Pat_selected = []
       NoVtx_selected = []
       Vtx_selected = []
