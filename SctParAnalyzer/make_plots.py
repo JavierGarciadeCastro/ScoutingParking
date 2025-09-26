@@ -7,9 +7,9 @@ import re
 from collections import Counter
 
 #filenames = ["output_ctau-1-mA-2p00-mpi-10.root"]
-filenames = ["output_ctau-10-mA-2p00-mpi-10.root"]
+#filenames = ["output_ctau-10-mA-2p00-mpi-10.root"]
 #filenames = ["output_ctau-100-mA-2p00-mpi-10.root"]
-#filenames = ["output_ctau-1-mA-2p00-mpi-10.root", "output_ctau-10-mA-2p00-mpi-10.root", "output_ctau-100-mA-2p00-mpi-10.root"]
+filenames = ["output_ctau-1-mA-2p00-mpi-10.root", "output_ctau-10-mA-2p00-mpi-10.root", "output_ctau-100-mA-2p00-mpi-10.root"]
 #filenames = ["output_test.root"]
 for filename in filenames:
   file = uproot.open(filename)
@@ -82,7 +82,7 @@ for filename in filenames:
   Scouting_SingleMu = tree["DST_PFScouting_SingleMuon_v*"].array()
   
   combined_SingleMu_Scouting = [pass_L1_singleMu, Scouting_SingleMu]
-  pass_singleMu_Scouting = [int(all(bits)) for bits in zip(*combined_SingleMu_Scouting)]
+  pass_SingleMu_Scouting = [int(all(bits)) for bits in zip(*combined_SingleMu_Scouting)]
   
   #Double Muon
   Scouting_DoubleMu = tree["DST_PFScouting_DoubleMuon_v*"].array()
@@ -256,7 +256,7 @@ for filename in filenames:
     is_Vtx_match = []
     matched_indices_Vtx = []
 
-    dr_threshold = 0.5
+    dr_threshold = 0.1
 
     for i in range(nevents):
       sorted_gen_pts = sorted(Gen_pt[i], reverse=True)
@@ -466,6 +466,11 @@ for filename in filenames:
     selected_trigger_lxy_NoVtx = []
     selected_trigger_lxy_Vtx = []
     selected_trigger_lxy_Pat = []
+
+    selected_trigger_SingleMu_lxy_NoVtx = []
+    selected_trigger_SingleMu_lxy_Vtx = []
+    selected_trigger_SingleMu_lxy_Pat = []
+
     selected_trigger_lxy_Gen = []
 
 
@@ -494,13 +499,24 @@ for filename in filenames:
         if j1 in gen_to_Vtx_match:
           selected_lxy_Vtx.append(Gen_lxy[i][j1])
           Vtx_selected.append(Gen_lxy[i][j1])
-      if pass_L1_doubleMu[i] and pass_DoubleMu_Parking[i]:
+      if pass_DoubleMu_Scouting[i]:
         if NoVtx_selected:
           selected_trigger_lxy_NoVtx.append(min(NoVtx_selected))
         if Vtx_selected:
           selected_trigger_lxy_Vtx.append(min(Vtx_selected))
+      if pass_DoubleMu_Parking[i]:
         if Pat_selected:
           selected_trigger_lxy_Pat.append(min(Pat_selected))
+      if pass_SingleMu_Scouting[i]:
+        if NoVtx_selected:
+            selected_trigger_SingleMu_lxy_NoVtx.append(min(NoVtx_selected))
+        if Vtx_selected:
+            selected_trigger_SingleMu_lxy_Vtx.append(min(Vtx_selected))
+      if pass_SingleMu_Parking[i]:
+        if Pat_selected:
+            selected_trigger_SingleMu_lxy_Pat.append(min(Pat_selected))
+
+
 
 
 
@@ -554,9 +570,12 @@ for filename in filenames:
 
     plt.figure()
     plt.hist(selected_trigger_lxy_Gen, bins=lxy_bins, histtype='step', label="Gen Lxy (≥2 muons)")
-    plt.hist(selected_trigger_lxy_Pat, bins=lxy_bins, histtype='step', label="PAT Lxy")
-    plt.hist(selected_trigger_lxy_NoVtx, bins=lxy_bins, histtype='step', label="SCT Lxy (NoVtx)")
-    plt.hist(selected_trigger_lxy_Vtx, bins=lxy_bins, histtype='step', label="SCT Lxy (Vtx)")
+    plt.hist(selected_trigger_lxy_Pat, bins=lxy_bins, histtype='step', label="PAT DoubleMu")
+    plt.hist(selected_trigger_lxy_NoVtx, bins=lxy_bins, histtype='step', label="SCT DoubleMu (NoVtx)")
+    plt.hist(selected_trigger_lxy_Vtx, bins=lxy_bins, histtype='step', label="SCT DubleMu (Vtx)")
+    plt.hist(selected_trigger_SingleMu_lxy_Pat, bins=lxy_bins, histtype='step', label="Pat SingleMu")
+    plt.hist(selected_trigger_SingleMu_lxy_Vtx, bins=lxy_bins, histtype='step', label="SCT SingleMu (Vtx)")
+    plt.hist(selected_trigger_SingleMu_lxy_NoVtx, bins=lxy_bins, histtype='step', label="SCT SingleMu (NoVtx)")
     plt.xlabel("Lxy [cm]")
     plt.ylabel("Entries")
     plt.legend()
@@ -575,15 +594,27 @@ for filename in filenames:
     Vtx_trigger_lxy_counts, _ = np.histogram(selected_trigger_lxy_Vtx, bins=lxy_bins)
     Pat_trigger_lxy_counts, _ = np.histogram(selected_trigger_lxy_Pat, bins=lxy_bins)
 
+    NoVtx_trigger_SingleMu_lxy_counts, _ = np.histogram(selected_trigger_SingleMu_lxy_NoVtx, bins=lxy_bins)
+    Vtx_trigger_SingleMu_lxy_counts, _ = np.histogram(selected_trigger_SingleMu_lxy_Vtx, bins=lxy_bins)
+    Pat_trigger_SingleMu_lxy_counts, _ = np.histogram(selected_trigger_SingleMu_lxy_Pat, bins=lxy_bins)
+
     eff_trigger_lxy_NoVtx = np.divide(NoVtx_trigger_lxy_counts, gen_trigger_lxy_counts,out=np.zeros_like(NoVtx_trigger_lxy_counts, dtype=float), where=gen_trigger_lxy_counts != 0)
     eff_trigger_lxy_Vtx = np.divide(Vtx_trigger_lxy_counts, gen_trigger_lxy_counts,out=np.zeros_like(Vtx_trigger_lxy_counts, dtype=float), where=gen_trigger_lxy_counts != 0)
     eff_trigger_lxy_Pat = np.divide(Pat_trigger_lxy_counts, gen_trigger_lxy_counts,out=np.zeros_like(Pat_trigger_lxy_counts, dtype=float), where=gen_trigger_lxy_counts != 0)
+
+    eff_trigger_SingleMu_lxy_NoVtx = np.divide(NoVtx_trigger_SingleMu_lxy_counts, gen_trigger_lxy_counts,out=np.zeros_like(NoVtx_trigger_SingleMu_lxy_counts, dtype=float), where=gen_trigger_lxy_counts != 0)
+    eff_trigger_SingleMu_lxy_Vtx = np.divide(Vtx_trigger_SingleMu_lxy_counts, gen_trigger_lxy_counts,out=np.zeros_like(Vtx_trigger_SingleMu_lxy_counts, dtype=float), where=gen_trigger_lxy_counts != 0)
+    eff_trigger_SingleMu_lxy_Pat = np.divide(Pat_trigger_SingleMu_lxy_counts, gen_trigger_lxy_counts,out=np.zeros_like(Pat_trigger_SingleMu_lxy_counts, dtype=float), where=gen_trigger_lxy_counts != 0)
 
 
     plt.figure()
     plt.plot(bin_centers, eff_trigger_lxy_Pat, drawstyle='steps-mid', label="Pat")
     plt.plot(bin_centers, eff_trigger_lxy_NoVtx, drawstyle='steps-mid', label="SCT NoVtx")
-    plt.plot(bin_centers, eff_trigger_lxy_Vtx, drawstyle='steps-mid', label="SCT NoVtx")
+    plt.plot(bin_centers, eff_trigger_lxy_Vtx, drawstyle='steps-mid', label="SCT Vtx")
+
+    plt.plot(bin_centers, eff_trigger_SingleMu_lxy_Pat, drawstyle='steps-mid', label="Pat SingleMu")
+    plt.plot(bin_centers, eff_trigger_SingleMu_lxy_NoVtx, drawstyle='steps-mid', label="SCT NoVtx SingleMu")
+    plt.plot(bin_centers, eff_trigger_SingleMu_lxy_Vtx, drawstyle='steps-mid', label="SCT Vtx SingleMu")
     
     plt.xlabel("Lxy [cm]")
     plt.ylabel("Efficiency")
