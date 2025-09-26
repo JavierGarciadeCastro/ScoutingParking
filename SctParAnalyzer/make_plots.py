@@ -7,8 +7,8 @@ import re
 from collections import Counter
 
 #filenames = ["output_ctau-1-mA-2p00-mpi-10.root"]
-#filenames = ["output_ctau-10-mA-2p00-mpi-10.root"]
-filenames = ["output_ctau-100-mA-2p00-mpi-10.root"]
+filenames = ["output_ctau-10-mA-2p00-mpi-10.root"]
+#filenames = ["output_ctau-100-mA-2p00-mpi-10.root"]
 #filenames = ["output_ctau-1-mA-2p00-mpi-10.root", "output_ctau-10-mA-2p00-mpi-10.root", "output_ctau-100-mA-2p00-mpi-10.root"]
 #filenames = ["output_test.root"]
 for filename in filenames:
@@ -170,7 +170,7 @@ for filename in filenames:
   #Gen_motherPdgId = tree["Gen_motherPdgId"].array()
   #Gen_ct = tree["Gen_ct"].array() 
   ngenMuons = tree["Number_GenMuons"].array()
-  '''
+  
   #For debugging purposes
   is_PAT_match = []
   matched_indices_Pat = []
@@ -179,6 +179,7 @@ for filename in filenames:
 
   is_Vtx_match = []
   matched_indices_Vtx = []
+  '''  
   dr_threshold = 0.1
 
   for i in range(50):
@@ -191,7 +192,9 @@ for filename in filenames:
 
       event_Vtx_match = [False] * len(sct_Muon_pt_Vtx[i])
       event_matches_Vtx = []
-
+      print(Gen_lxy[i])
+      print(Gen_pt[i])
+      print(PAT_Muon_pt[i])
       for j in range(len(Gen_pt[i])):
         for k in range(len(PAT_Muon_pt[i])):
           deta_Pat = PAT_Muon_eta[i][k] - Gen_eta[i][j]
@@ -207,10 +210,10 @@ for filename in filenames:
                 event_matches_Pat[j] = []
             event_matches_Pat[j].append(k)
       print(event_matches_Pat)
-      print(len(Gen_pt[i]))
-      print(Gen_pt[i])
-      print(len(PAT_Muon_pt[i]))
-      print(PAT_Muon_pt[i])
+      #print(len(Gen_pt[i]))
+      #print(Gen_pt[i])
+      #print(len(PAT_Muon_pt[i]))
+      #print(PAT_Muon_pt[i])
       is_PAT_match.append(event_PAT_match)
       matched_indices_Pat.append(event_matches_Pat)
   print(matched_indices_Pat)
@@ -220,8 +223,8 @@ for filename in filenames:
   if Draw_plots:
     print('Plotting')
 
-    #info_text = f"$m_A$ = {mA} GeV\n$m_{{\pi}}$ = {mpi} GeV\n$c\\tau$ = {ctau} mm"
-    info_text = ""
+    info_text = f"$m_A$ = {mA} GeV\n$m_{{\pi}}$ = {mpi} GeV\n$c\\tau$ = {ctau} mm"
+    #info_text = ""
 
     pt_bins = np.arange(0, 60 + 1, 1)
     nevents = len(Gen_eta)
@@ -253,7 +256,7 @@ for filename in filenames:
     is_Vtx_match = []
     matched_indices_Vtx = []
 
-    dr_threshold = 0.1
+    dr_threshold = 0.5
 
     for i in range(nevents):
       sorted_gen_pts = sorted(Gen_pt[i], reverse=True)
@@ -502,13 +505,13 @@ for filename in filenames:
 
 
 
-    lxy_bins = np.linspace(0, 70, 101)  # 100 bins means 101 edges
+    lxy_bins = np.linspace(0, 70, 101)
     plt.figure()
     plt.hist(selected_Gen_lxy, bins=lxy_bins, histtype='step', label="Gen Lxy (≥2 muons)")
     plt.hist(selected_lxy_Pat, bins=lxy_bins, histtype='step', label="RECO PAT Lxy")
     plt.hist(selected_lxy_NoVtx, bins=lxy_bins, histtype='step', label="RECO SCT Lxy (NoVtx)")
     plt.hist(selected_lxy_Vtx, bins=lxy_bins, histtype='step', label="RECO SCT Lxy (Vtx)")
-    plt.xlabel("Lxy [cm]")  # or cm depending on your units
+    plt.xlabel("Lxy [cm]")
     plt.ylabel("Entries")
     plt.legend()
     plt.text(0.75, 0.5, info_text, transform=plt.gca().transAxes, fontsize=10, verticalalignment='center', bbox=dict(boxstyle="round", facecolor="white", alpha=0.7))
