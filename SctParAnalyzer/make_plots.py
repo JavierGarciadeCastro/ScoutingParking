@@ -256,7 +256,7 @@ for filename in filenames:
     is_Vtx_match = []
     matched_indices_Vtx = []
 
-    dr_threshold = 0.1
+    dr_threshold = 0.3
 
     for i in range(nevents):
       sorted_gen_pts = sorted(Gen_pt[i], reverse=True)
@@ -275,10 +275,8 @@ for filename in filenames:
         for k in range(len(PAT_Muon_pt[i])):
           deta_Pat = PAT_Muon_eta[i][k] - Gen_eta[i][j]
           dphi_Pat = PAT_Muon_phi[i][k] - Gen_phi[i][j]
-          if dphi_Pat > np.pi:
-              dphi_Pat = 2*np.pi - dphi_Pat
-          elif dphi_Pat < -np.pi:
-              dphi_Pat += 2*np.pi
+          dphi_Pat = (dphi_Pat + np.pi) % (2 * np.pi) - np.pi
+
           dr_Pat = np.sqrt(deta_Pat**2 + dphi_Pat**2)
           if dr_Pat < dr_threshold:
             event_PAT_match[k] = True
@@ -291,10 +289,7 @@ for filename in filenames:
         for k in range(len(sct_Muon_pt_NoVtx[i])):
           deta_NoVtx = sct_Muon_eta_NoVtx[i][k] - Gen_eta[i][j]
           dphi_NoVtx = sct_Muon_phi_NoVtx[i][k] - Gen_phi[i][j]
-          if dphi_NoVtx > np.pi:
-              dphi_NoVtx = 2*np.pi - dphi_NoVtx
-          elif dphi_NoVtx < -np.pi:
-              dphi_NoVtx += 2*np.pi
+          dphi_NoVtx = (dphi_NoVtx + np.pi) % (2 * np.pi) - np.pi
           dr_NoVtx = np.sqrt(deta_NoVtx**2 + dphi_NoVtx**2)
           if dr_NoVtx < dr_threshold:
             event_NoVtx_match[k] = True
@@ -305,10 +300,7 @@ for filename in filenames:
         for k in range(len(sct_Muon_pt_Vtx[i])):
           deta_Vtx = sct_Muon_eta_Vtx[i][k] - Gen_eta[i][j]
           dphi_Vtx = sct_Muon_phi_Vtx[i][k] - Gen_phi[i][j]
-          if dphi_Vtx > np.pi:
-              dphi_Vtx = 2*np.pi - dphi_Vtx
-          elif dphi_Vtx < -np.pi:
-              dphi_Vtx += 2*np.pi
+          dphi_Vtx = (dphi_Vtx + np.pi) % (2 * np.pi) - np.pi
           dr_Vtx = np.sqrt(deta_Vtx**2 + dphi_Vtx**2)
           if dr_Vtx < dr_threshold:
             event_Vtx_match[k] = True
